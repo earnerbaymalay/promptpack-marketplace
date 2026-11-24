@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PromptPack Marketplace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --void: #000000;
+      --void-elevated: #0a0a0a;
+      --void-card: #111111;
+      --void-border: #1a1a1a;
+      --fg: #fafafa;
+      --fg-muted: #a3a3a3;
+      --fg-subtle: #525252;
+      --accent: #d4a843;
+      --accent-glow: rgba(212, 168, 67, 0.15);
+      --accent-strong: #e8c56d;
+      --radius: 0;
+      --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Geist Mono", "JetBrains Mono", monospace;
+      background: var(--void);
+      color: var(--fg);
+      line-height: 1.6;
+      min-height: 100vh;
+      font-size: 13px;
+      -webkit-font-smoothing: antialiased;
+    }
+    #app { min-height: 100vh; display: flex; flex-direction: column; }
+    header { padding: 24px 32px; border-bottom: 1px solid var(--void-border); display: flex; align-items: center; justify-content: space-between; }
+    .logo { font-family: "Geist", sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -0.03em; background: linear-gradient(135deg, var(--fg) 0%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    nav { display: flex; gap: 8px; }
+    nav button { background: var(--void-card); border: 1px solid var(--void-border); padding: 8px 16px; color: var(--fg-muted); font-family: "Geist Mono", monospace; font-size: 12px; cursor: pointer; transition: all 200ms; }
+    nav button:hover, nav button.active { border-color: var(--accent); color: var(--accent); background: rgba(212,168,67,0.1); }
+    main { flex: 1; padding: 32px; max-width: 1200px; margin: 0 auto; width: 100%; }
+    .section { margin-bottom: 48px; }
+    .section-title { font-family: "Geist", sans-serif; font-weight: 700; font-size: 20px; margin-bottom: 24px; letter-spacing: -0.02em; }
+    .grid { display: grid; gap: 16px; }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+    @media (max-width: 900px) { .grid-4, .grid-3 { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; } }
+    .pack-card { background: var(--void-card); border: 1px solid var(--void-border); padding: 24px; transition: all 200ms; position: relative; overflow: hidden; }
+    .pack-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(212,168,67,0.3), transparent); opacity: 0; transition: opacity 200ms; }
+    .pack-card:hover { border-color: rgba(212,168,67,0.3); transform: translateY(-4px); box-shadow: 0 0 40px rgba(212,168,67,0.08); }
+    .pack-card:hover::before { opacity: 1; }
+    .pack-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+    .pack-name { font-family: "Geist", sans-serif; font-weight: 600; font-size: 15px; }
+    .pack-version { font-family: "Geist Mono", monospace; font-size: 11px; color: var(--fg-muted); background: var(--void-elevated); padding: 2px 8px; border: 1px solid var(--void-border); }
+    .pack-desc { color: var(--fg-muted); font-size: 13px; line-height: 1.6; margin-bottom: 16px; }
+    .pack-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .tag { font-family: "Geist Mono", monospace; font-size: 10px; padding: 3px 8px; border: 1px solid var(--void-border); color: var(--fg-muted); background: var(--void-card); }
+    .tag.active { border-color: var(--accent); color: var(--accent); background: rgba(212,168,67,0.1); }
+    .pack-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 16px; border-top: 1px solid var(--void-border); }
+    .pack-price { font-family: "Geist", sans-serif; font-weight: 600; font-size: 16px; color: var(--accent); }
+    .btn { font-family: "Geist Mono", monospace; font-size: 11px; font-weight: 500; padding: 8px 16px; border: 1px solid var(--void-border); background: var(--void-card); color: var(--fg-muted); cursor: pointer; transition: all 200ms; }
+    .btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(212,168,67,0.1); }
+    .btn.primary { border-color: var(--accent); color: var(--void); background: var(--accent); }
+    .btn.primary:hover { background: var(--accent-strong); }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; visibility: hidden; transition: all 200ms; }
+    .modal.open { opacity: 1; visibility: visible; }
+    .modal-content { background: var(--void-card); border: 1px solid var(--void-border); padding: 32px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
+    .form-group { margin-bottom: 20px; }
+    .form-label { display: block; font-family: "Geist Mono", monospace; font-size: 11px; color: var(--fg-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .form-input { width: 100%; background: var(--void); border: 1px solid var(--void-border); color: var(--fg); padding: 12px 16px; font-family: "Geist Mono", monospace; font-size: 13px; }
+    .form-input:focus { outline: none; border-color: var(--accent); }
+    .eval-results { margin-top: 24px; }
+    .eval-card { background: var(--void-card); border: 1px solid var(--void-border); padding: 20px; margin-bottom: 12px; }
+    .eval-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .eval-model { font-family: "Geist Mono", monospace; font-size: 12px; color: var(--fg-muted); }
+    .eval-score { font-family: "Geist", sans-serif; font-weight: 600; font-size: 18px; color: var(--accent); }
+    .eval-details { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; font-size: 12px; }
+    .eval-detail { background: var(--void-elevated); padding: 12px; border: 1px solid var(--void-border); }
+    .eval-detail-label { color: var(--fg-subtle); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .eval-detail-value { color: var(--fg); font-weight: 500; }
+    @media (max-width: 900px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; } header { padding: 16px 20px; } main { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <span class="logo">PromptPack Marketplace</span>
+      <nav>
+        <button class="active" data-tab="marketplace">Marketplace</button>
+        <button data-tab="eval">Eval Lab</button>
+        <button data-tab="create">Create Pack</button>
+        <button data-tab="settings">Settings</button>
+      </nav>
+    </header>
+    <main>
+      <section id="marketplace" class="section">
+        <header class="section-header">
+          <h2 class="section-title">MARKETPLACE</h2>
+          <span class="section-subtitle">Verified prompt packs · Local eval · Instant install</span>
+        </header>
+        <div class="grid grid-4" id="packs-grid">
+          <!-- Packs rendered here -->
+        </div>
+      </section>
+
+      <section id="eval" class="section" style="display:none;">
+        <header class="section-header">
+          <h2 class="section-title">EVAL LAB</h2>
+          <span class="section-subtitle">Run local A/B evals against your model fleet</span>
+        </header>
+        <div class="card" style="margin-bottom:24px;">
+          <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
+            <div class="form-group" style="flex:1; min-width:200px;">
+              <label class="form-label">Pack</label>
+              <select class="form-input" id="eval-pack-select"></select>
+            </div>
+            <div class="form-group" style="flex:1; min-width:200px;">
+              <label class="form-label">Model</label>
+              <select class="form-input" id="eval-model-select">
+                <option value="qwen2.5-coder:1.5b">qwen2.5-coder:1.5b</option>
+                <option value="qwen2.5:3b">qwen2.5:3b</option>
+                <option value="llama3.2-3b">llama3.2-3b</option>
+                <option value="dolphin-phi">dolphin-phi</option>
+              </select>
+            </div>
+            <button class="btn primary" id="run-eval-btn">Run Eval</button>
+          </div>
+        </div>
+        <div class="eval-results" id="eval-results"></div>
+      </section>
+
+      <section id="create" class="section" style="display:none;">
+        <header class="section-header">
+          <h2 class="section-title">CREATE PACK</h2>
+          <span class="section-subtitle">Package your prompts with signature</span>
+        </header>
+        <div class="card">
+          <div class="form-group">
+            <label class="form-label">Pack Name</label>
+            <input type="text" class="form-input" id="create-name" placeholder="my-awesome-prompt">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea class="form-input" id="create-desc" rows="3" placeholder="What does this pack do?"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">System Prompt</label>
+            <textarea class="form-input" id="create-system" rows="4" placeholder="You are an expert..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">User Template (use {variable} for interpolation)</label>
+            <textarea class="form-input" id="create-template" rows="3" placeholder="Analyze {code} for security issues"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Private Key (hex, 32 bytes)</label>
+            <input type="text" class="form-input" id="create-privkey" placeholder="ed25519 private key hex">
+          </div>
+          <button class="btn primary" id="create-pack-btn">Create & Sign Pack</button>
+        </div>
+      </section>
+
+      <section id="settings" class="section" style="display:none;">
+        <header class="section-header">
+          <h2 class="section-title">SETTINGS</h2>
+          <span class="section-subtitle">Ollama · Registry · Stripe</span>
+        </header>
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="form-group">
+              <label class="form-label">Ollama URL</label>
+              <input type="text" class="form-input" id="setting-ollama" value="http://localhost:11434">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Default Model</label>
+              <input type="text" class="form-input" id="setting-model" value="qwen2.5-coder:1.5b">
+            </div>
+          </div>
+          <div class="card">
+            <div class="form-group">
+              <label class="form-label">Registry URL</label>
+              <input type="text" class="form-input" id="setting-registry" value="https://earnerbaymalay.github.io/promptpack-index/index.json">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Stripe Publishable Key</label>
+              <input type="text" class="form-input" id="setting-stripe" placeholder="pk_test_...">
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module">
+    import { invoke } from '@tauri-apps/api/core';
+    import { open } from '@tauri-apps/plugin-dialog';
+    import { readTextFile, writeTextFile, BaseDirectory } from '@tauri-apps/plugin-fs';
+
+    // State
+    let packs = [];
+    let currentTab = 'marketplace';
+
+    // DOM Elements
+    const tabs = document.querySelectorAll('nav button');
+    const sections = document.querySelectorAll('main section');
+    const packsGrid = document.getElementById('packs-grid');
+    const evalPackSelect = document.getElementById('eval-pack-select');
+    const evalModelSelect = document.getElementById('eval-model-select');
+    const runEvalBtn = document.getElementById('run-eval-btn');
+    const evalResults = document.getElementById('eval-results');
+    const createName = document.getElementById('create-name');
+    const createDesc = document.getElementById('create-desc');
+    const createSystem = document.getElementById('create-system');
+    const createTemplate = document.getElementById('create-template');
+    const createPrivkey = document.getElementById('create-privkey');
+    const createPackBtn = document.getElementById('create-pack-btn');
+    const settingOllama = document.getElementById('setting-ollama');
+    const settingModel = document.getElementById('setting-model');
+    const settingRegistry = document.getElementById('setting-registry');
+    const settingStripe = document.getElementById('setting-stripe');
+    const runEvalBtnEl = document.getElementById('run-eval-btn');
+
+    // Tab switching
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        sections.forEach(s => s.style.display = 'none');
+        document.getElementById(tab.dataset.tab).style.display = 'block';
+        currentTab = tab.dataset.tab;
+        if (currentTab === 'marketplace') loadPacks();
+        if (currentTab === 'eval') loadEvalPacks();
+      });
+    });
+
+    // Load packs from registry
+    async function loadPacks() {
+      try {
+        const index = await invoke('fetch_index');
+        packs = index.packs || [];
+        renderPacks(packs);
+        updateEvalPackSelect(packs);
+      } catch (e) {
+        console.error('Failed to load packs:', e);
+        packsGrid.innerHTML = '<p style="color:var(--fg-muted); text-align:center; padding:48px;">Failed to load packs. Check registry URL in settings.</p>';
+      }
+    }
+
+    function renderPacks(packs) {
+      const grid = document.getElementById('packs-grid');
+      if (packs.length === 0) {
+        grid.innerHTML = '<p style="color:var(--fg-muted); text-align:center; padding:48px; grid-column:1/-1;">No packs found. Create your first pack!</p>';
+        return;
+      }
+      grid.innerHTML = packs.map(pack => `
+        <div class="pack-card">
+          <div class="pack-header">
+            <span class="pack-name">${escapeHtml(pack.name)}</span>
+            <span class="pack-version">v${escapeHtml(pack.version)}</span>
+          </div>
+          <p class="pack-desc">${escapeHtml(pack.description)}</p>
+          <div class="pack-meta">
+            ${pack.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
+          </div>
+          <div class="pack-footer">
+            <span class="pack-price">${pack.price_usd ? '$' + pack.price_usd : 'Free'}</span>
+            <button class="btn primary" onclick="installPack('${pack.id}')">Install</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateEvalPackSelect(packs) {
+      evalPackSelect.innerHTML = packs.map(p => `<option value="${p.id}">${p.name} (v${p.version})</option>`).join('');
+    }
+
+    async function loadEvalPacks() {
+      try {
+        const index = await invoke('fetch_index');
+        updateEvalPackSelect(index.packs || []);
+      } catch (e) {
+        console.error('Failed to load eval packs:', e);
+      }
+    }
+
+    // Run eval
+    runEvalBtnEl.addEventListener('click', async () => {
+      const packId = evalPackSelect.value;
+      const model = evalModelSelect.value;
+      if (!packId) return alert('Select a pack first');
+
+      runEvalBtnEl.disabled = true;
+      runEvalBtnEl.textContent = 'Running...';
+
+      try {
+        // First download the pack to get test cases
+        const packJson = await invoke('download_pack', { packId });
+        const pack = JSON.parse(packJson);
+        
+        const testCases = pack.eval?.test_cases || [];
+        if (testCases.length === 0) {
+          alert('No test cases defined in this pack');
+          return;
+        }
+
+        const summary = await invoke('run_eval', { packId, model, testCases });
+        renderEvalResults(summary);
+      } catch (e) {
+        console.error('Eval failed:', e);
+        alert('Eval failed: ' + e);
+      } finally {
+        runEvalBtnEl.disabled = false;
+        runEvalBtnEl.textContent = 'Run Eval';
+      }
+    });
+
+    function renderEvalResults(summary) {
+      const container = document.getElementById('eval-results');
+      container.innerHTML = `
+        <h3 style="margin-bottom:16px; font-family:Geist,sans-serif; font-weight:600;">Eval Results — ${summary.model}</h3>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;">
+          <div class="eval-detail"><div class="eval-detail-label">Total Cases</div><div class="eval-detail-value">${summary.total_cases}</div></div>
+          <div class="eval-detail"><div class="eval-detail-label">Passed</div><div class="eval-detail-value" style="color:#22c55e;">${summary.passed}</div></div>
+          <div class="eval-detail"><div class="eval-detail-label">Failed</div><div class="eval-detail-value" style="color:#dc2626;">${summary.failed}</div></div>
+          <div class="eval-detail"><div class="eval-detail-label">Overall Score</div><div class="eval-detail-value" style="color:var(--accent);">${(summary.overall_score * 100).toFixed(1)}%</div></div>
+        </div>
+        <div class="eval-results">
+          ${summary.details.map(d => `
+            <div class="eval-card">
+              <div class="eval-header">
+                <span class="eval-model">${d.test_case}</span>
+                <span class="eval-score" style="color:${d.passed ? '#22c55e' : '#dc2626'}">${(d.quality_score * 100).toFixed(1)}%</span>
+              </div>
+              <div class="eval-details">
+                <div class="eval-detail"><div class="eval-detail-label">Latency</div><div class="eval-detail-value">${d.latency_ms}ms</div></div>
+                <div class="eval-detail"><div class="eval-detail-label">Tokens In/Out</div><div class="eval-detail-value">${d.tokens_in}/${d.tokens_out}</div></div>
+                <div class="eval-detail"><div class="eval-detail-label">Cost</div><div class="eval-detail-value">$${d.cost_usd.toFixed(6)}</div></div>
+                <div class="eval-detail"><div class="eval-detail-label">Tokens/sec</div><div class="eval-detail-value">${d.metrics?.tokens_per_sec?.toFixed(1) || 0}</div></div>
+              </div>
+              <details style="margin-top:12px;">
+                <summary style="color:var(--fg-muted); cursor:pointer;">Output</summary>
+                <pre style="margin-top:8px; font-family:inherit; font-size:11px; white-space:pre-wrap; background:var(--void-elevated); padding:12px; border:1px solid var(--void-border);">${escapeHtml(d.output)}</pre>
+              </details>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    // Create pack
+    createPackBtn.addEventListener('click', async () => {
+      const metadata = {
+        name: createName.value,
+        version: '1.0.0',
+        author: 'earnerbaymalay',
+        description: createDesc.value,
+        tags: ['prompt', 'local'],
+        license: 'MIT',
+        homepage: '',
+        repository: '',
+      };
+      const prompt = {
+        system: createSystem.value,
+        user_template: createTemplate.value,
+        few_shot: [],
+        variables: {},
+      };
+      const evalConfig = {
+        test_cases: [],
+        metrics: [{ name: 'quality', weight: 1.0, threshold: 0.7 }],
+        judge_model: 'qwen2.5-coder:1.5b',
+        threshold: 0.7,
+      };
+      const privateKey = createPrivkey.value;
+
+      if (!metadata.name || !prompt.system || !prompt.user_template || !privateKey) {
+        alert('Fill all required fields');
+        return;
+      }
+
+      try {
+        const packJson = await invoke('create_pack', { metadata, prompt, eval: evalConfig, privateKeyHex: privateKey });
+        // Save to file
+        const fileName = `${metadata.name.toLowerCase().replace(/\s+/g, '-')}.promptpack`;
+        await invoke('writeTextFile', { path: fileName, contents: packJson });
+        alert('Pack created: ' + fileName);
+      } catch (e) {
+        alert('Failed to create pack: ' + e);
+      }
+    });
+
+    // Settings
+    async function loadSettings() {
+      try {
+        const config = await invoke('get_config');
+        settingOllama.value = config.ollama_url;
+        settingModel.value = config.default_model;
+        settingRegistry.value = config.registry_url;
+        settingStripe.value = config.stripe_publishable_key || '';
+      } catch (e) {
+        console.error('Failed to load settings:', e);
+      }
+    }
+
+    settingOllama.addEventListener('blur', saveSettings);
+    settingModel.addEventListener('blur', saveSettings);
+    settingRegistry.addEventListener('blur', saveSettings);
+    settingStripe.addEventListener('blur', saveSettings);
+
+    async function saveSettings() {
+      const config = {
+        ollama_url: settingOllama.value,
+        default_model: settingModel.value,
+        registry_url: settingRegistry.value,
+        stripe_publishable_key: settingStripe.value || null,
+      };
+      await invoke('set_config', { config });
+    }
+
+    // Utils
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Install pack (placeholder)
+    window.installPack = async (packId) => {
+      try {
+        const packJson = await invoke('download_pack', { packId });
+        const fileName = `${packId}.promptpack`;
+        await invoke('writeTextFile', { path: fileName, contents: packJson });
+        alert('Installed: ' + fileName);
+      } catch (e) {
+        alert('Install failed: ' + e);
+      }
+    };
+
+    // Init
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadSettings();
+      await loadPacks();
+    });
+  </script>
+</body>
+</html>
