@@ -1,0 +1,109 @@
+{
+  "metadata": {
+    "id": "0123456789012345",
+    "name": "Incident Response Playbook",
+    "version": "1.0.0",
+    "author": "earnerbaymalay",
+    "author_pubkey": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "description": "Runbooks for common incidents: outages, security events, data loss, performance degradation",
+    "tags": ["incident-response", "runbook", "sre", "reliability", "on-call", "postmortem"],
+    "created_at": "2026-11-24T10:00:00Z",
+    "updated_at": "2026-11-24T10:00:00Z",
+    "license": "MIT",
+    "homepage": "https://github.com/earnerbaymalay/promptpack-marketplace",
+    "repository": "https://github.com/earnerbaymalay/promptpack-marketplace"
+  },
+  "prompt": {
+    "system": "You are an SRE/incident commander. Create actionable runbooks following the NIST incident response framework: Preparation, Detection, Containment, Eradication, Recovery, Lessons Learned. Include runbook metadata, escalation paths, and automation hints.",
+    "user_template": "Create an incident runbook for {incident_type}:\n\nSystem: {system}\nSeverity: {severity}\nSymptoms: {symptoms}\nImpact: {impact}\nSLO/SLA: {slo}\nTeam: {team}\n\nDeliverables:\n1. **Runbook metadata** (ID, version, owner, last reviewed)\n2. **Detection** (alerts, dashboards, log queries)\n3. **Triage** (severity matrix, escalation)\n4. **Containment** (immediate actions, isolation)\n5. **Investigation** (diagnostic queries, dashboards)\n6. **Resolution** (step-by-step fix)\n7. **Recovery** (validation, monitoring)\n8. **Communication** (stakeholder templates)\n9. **Postmortem** (template, timeline, action items)\n10. **Automation** (runbook-as-code, ChatOps)",
+    "few_shot": [
+      {
+        "input": {
+          "incident_type": "Database connection pool exhaustion",
+          "system": "PostgreSQL (RDS) + Spring Boot services",
+          "severity": "SEV-1 (customer-facing outage)",
+          "symptoms": "503 errors, 'connection pool exhausted' logs, high latency",
+          "impact": "All write operations failing, read degraded",
+          "slo": "99.9% availability, <200ms p99 latency",
+          "team": "Platform team (on-call: primary + secondary)"
+        },
+        "output": "# Runbook: DB Connection Pool Exhaustion\n\n## Metadata\n- **ID**: IR-2024-DB-POOL-001\n- **Version**: 1.2\n- **Owner**: Platform Team\n- **Last Reviewed**: 2026-11-24\n- **Tags**: database, postgresql, connection-pool, sev-1\n\n## Detection\n\n### Alerts\n- `pg_stat_activity_count > 80% of max_connections` (Prometheus)\n- `http_5xx_rate > 5%` (5m window)\n- `db_connection_pool_usage > 90%` (Micrometer)\n\n### Dashboards\n- Grafana: `PostgreSQL Overview` > Connections panel\n- Datadog: `APM > Services > api` > Error rate\n\n### Log Queries\n```sql\n-- Current connections\nSELECT count(*), state FROM pg_stat_activity GROUP BY state;\n\n-- Long-running queries\nSELECT pid, now() - query_start AS duration, query\nFROM pg_stat_activity WHERE state = 'active' AND duration > interval '30s';\n```\n\n## Triage\n\n| Symptom | Severity | Action |\n|---------|----------|--------|\n| Pool > 90%, errors < 1% | SEV-2 | Investigate, prepare scale |\n| Pool > 95%, errors > 1% | SEV-1 | Immediate containment |\n| Pool = 100%, all writes fail | SEV-1 | Emergency scale + kill |\n\n## Containment (SEV-1)\n\n### Immediate (0-5 min)\n1. **Scale read replica**: `aws rds modify-db-instance --db-instance-id prod-replica --max-connections 2000 --apply-immediately`\n2. **Kill idle connections**: `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND now() - state_change > interval '10m';`\n3. **Enable connection pooling**: `pgbouncer` config reload\n\n### Short-term (5-30 min)\n4. **Increase max_connections**: Parameter group change (requires reboot)\n5. **Throttle non-critical traffic**: API Gateway rate limit\n\n## Investigation\n\n### Diagnostic Queries\n```sql\n-- Connection sources\nSELECT client_addr, usename, count(*) FROM pg_stat_activity GROUP BY client_addr, usename ORDER BY count DESC;\n\n-- Wait events\nSELECT wait_event_type, wait_event, count(*) FROM pg_stat_activity WHERE wait_event IS NOT NULL GROUP BY 1,2 ORDER BY count DESC;\n\n-- Lock contention\nSELECT * FROM pg_locks WHERE NOT granted;\n```\n\n### Check Application\n- HikariCP metrics: `hikaricp.connections.active`, `hikaricp.connections.idle`\n- Thread dump: `jstack <pid>`\n- Recent deployments: `argocd app get prod-api`\n\n## Resolution\n\n### Root Cause: Connection Leak\n1. Identify leaking code path (thread dump + correlation)\n2. Fix: Ensure `try-with-resources` or `@Transactional` completion\n3. Deploy hotfix\n\n### Root Cause: Long-Running Queries\n1. Identify query (pg_stat_activity)\n2. Add index or rewrite query\n3. Deploy fix\n\n### Root Cause: Traffic Spike\n1. Auto-scale: `kubectl scale deployment api --replicas=10`\n2. Add read replicas\n3. Implement connection pooling (PgBouncer)\n\n## Recovery\n\n### Validation\n- [ ] Connection pool < 50%\n- [ ] Error rate < 0.1%\n- [ ] p99 latency < 200ms\n- [ ] All health checks passing\n\n### Monitoring (30 min post-recovery)\n- Watch connection count trend\n- Monitor query duration\n- Check for retry storms\n\n## Communication\n\n### Internal (Slack #incidents)\n```\n🚨 SEV-1: Database connection pool exhaustion\nImpact: All write operations failing\nStatus: Containing - scaling read replica\nIC: @oncall-primary\nETA: 15 min\n```\n\n### Status Page\n```\nWe're experiencing degraded performance. Our team is investigating.\n```\n\n### Post-Incident (within 24h)\n- Schedule postmortem\n- Create action items in Jira\n- Update runbook\n\n## Automation\n\n### ChatOps (Slack)\n```
+/incident run db-pool-exhaustion
+/incident scale read-replica --instances 3
+/incident kill-idle-connections --threshold 10m
+```\n\n### Runbook-as-Code (GitHub Actions)\n```yaml\nname: DB Pool Exhaustion Response\non:\n  workflow_dispatch:\n    inputs:\n      action:\n        type: choice\n        options: [scale-replica, kill-idle, increase-max-conn]\njobs:\n  respond:\n    runs-on: self-hosted\n    steps:\n      - uses: aws-actions/configure-aws-credentials@v4\n      - run: |\n          case \"${{ github.event.inputs.action }}\" in\n            scale-replica) aws rds modify-db-instance ... ;;\n            kill-idle) psql -c \"SELECT pg_terminate_backend...\" ;;\n          esac\n```"
+      }
+    ],
+    "variables": {
+      "incident_type": {
+        "type": "string",
+        "description": "Type of incident",
+        "required": true,
+        "enum_values": ["Database connection pool exhaustion", "High latency / timeout", "Deployment rollback", "Security breach", "Data loss / corruption", "Certificate expiry", "DNS outage", "Capacity exhaustion", "Dependency failure", "Configuration drift"]
+      },
+      "system": {
+        "type": "string",
+        "description": "Affected system",
+        "required": true
+      },
+      "severity": {
+        "type": "string",
+        "description": "Severity level",
+        "required": true,
+        "enum_values": ["SEV-1 (critical)", "SEV-2 (major)", "SEV-3 (minor)", "SEV-4 (low)"]
+      },
+      "symptoms": {
+        "type": "string",
+        "description": "Observed symptoms",
+        "required": true
+      },
+      "impact": {
+        "type": "string",
+        "description": "Business impact",
+        "required": true
+      },
+      "slo": {
+        "type": "string",
+        "description": "SLO/SLA",
+        "required": false,
+        "default": "99.9% availability"
+      },
+      "team": {
+        "type": "string",
+        "description": "Responsible team",
+        "required": true
+      }
+    }
+  },
+  "eval": {
+    "test_cases": [
+      {
+        "name": "db-pool-exhaustion",
+        "input": {
+          "incident_type": "Database connection pool exhaustion",
+          "system": "PostgreSQL (RDS) + Spring Boot",
+          "severity": "SEV-1 (customer-facing outage)",
+          "symptoms": "503 errors, connection pool exhausted logs",
+          "impact": "All write operations failing",
+          "slo": "99.9% availability, <200ms p99",
+          "team": "Platform team"
+        },
+        "expected_output": "Complete runbook with detection, containment, investigation, recovery, postmortem",
+        "criteria": ["detection queries", "containment steps", "investigation queries", "resolution paths", "recovery validation", "communication templates", "automation hints"]
+      }
+    ],
+    "metrics": [
+      { "name": "quality", "weight": 1.0, "threshold": 0.8 },
+      { "name": "latency", "weight": 0.3, "threshold": 8000 },
+      { "name": "cost", "weight": 0.2, "threshold": 0.002 }
+    ],
+    "judge_model": "qwen2.5-coder:1.5b",
+    "threshold": 0.75
+  },
+  "signature": {
+    "algorithm": "ed25519",
+    "public_key": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "signature": "placeholder_signature_hex_64_bytes",
+    "signed_at": "2026-11-24T10:00:00Z"
+  }
+}

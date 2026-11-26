@@ -1,0 +1,96 @@
+{
+  "metadata": {
+    "id": "9012345678901234",
+    "name": "Legacy Code Modernization",
+    "version": "1.0.0",
+    "author": "earnerbaymalay",
+    "author_pubkey": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "description": "Refactoring patterns, strangler fig, and incremental modernization strategies for legacy systems",
+    "tags": ["refactoring", "legacy", "modernization", "strangler-fig", "technical-debt", "migration"],
+    "created_at": "2026-11-23T10:00:00Z",
+    "updated_at": "2026-11-24T10:00:00Z",
+    "license": "MIT",
+    "homepage": "https://github.com/earnerbaymalay/promptpack-marketplace",
+    "repository": "https://github.com/earnerbaymalay/promptpack-marketplace"
+  },
+  "prompt": {
+    "system": "You are a legacy modernization expert. Apply strangler fig pattern, incremental refactoring, characterization tests, and domain-driven design to safely modernize legacy systems without big-bang rewrites.",
+    "user_template": "Modernize this legacy {language} system:\n\nCodebase: {codebase_description}\nPain points: {pain_points}\nConstraints: {constraints}\nTarget architecture: {target_architecture}\nTeam capacity: {team_capacity}\n\nDeliverables:\n1. **Characterization tests** (capture current behavior)\n2. **Strangler fig plan** (incremental extraction)\n3. **Refactoring roadmap** (phased, with milestones)\n4. **Anti-corruption layers** (boundary patterns)\n5. **Data migration strategy** (dual-write, CDC)\n6. **Feature flags** (safe rollout)\n7. **Rollback procedures**\n8. **Observability** (metrics, logging, tracing)\n9. **Team training plan**",
+    "few_shot": [
+      {
+        "input": {
+          "language": "Java",
+          "codebase_description": "Spring MVC monolith (500k LOC), 15 years old, no tests, Oracle DB, JSP frontend",
+          "pain_points": "Deploy takes 2 hours, any change breaks unrelated features, Oracle license costs, hiring difficult",
+          "constraints": "Cannot stop feature work, 5 developers, 6-month timeline",
+          "target_architecture": "Spring Boot microservices, PostgreSQL, React frontend, Kubernetes",
+          "team_capacity": "5 devs, 20% time for modernization"
+        },
+        "output": "## Characterization Tests\n\n### Phase 1: Safety Net (Weeks 1-4)\n- Contract tests for all public endpoints (Pact)\n- Database snapshot testing (Testcontainers)\n- Golden master approval testing\n\n## Strangler Fig Plan\n\n### Extraction Order (by coupling):\n1. **Auth Service** (low coupling, high value)\n2. **Notification Service** (async, isolated)\n3. **Reporting Service** (read-only, new DB)\n4. **Core Domain** (last, highest risk)\n\n### Anti-Corruption Layers\n```java\n// Facade for legacy UserService\npublic interface UserServiceFacade {\n    UserDTO findById(String id);\n    UserDTO create(CreateUserCommand cmd);\n}\n\n// Legacy implementation\n@Component\npublic class LegacyUserServiceFacade implements UserServiceFacade {\n    @Autowired LegacyUserService legacy;\n    public UserDTO findById(String id) {\n        return UserMapper.toDTO(legacy.getUser(id));\n    }\n}\n\n// New implementation (Spring Boot)\n@Component\n@Primary\npublic class NewUserServiceFacade implements UserServiceFacade {\n    @Autowired UserRepository repo;\n    public UserDTO findById(String id) {\n        return repo.findById(id).map(UserMapper::toDTO).orElseThrow();\n    }\n}\n```\n\n## Feature Flags\n```yaml\n# application.yml\nmodernization:\n  auth-service: true\n  notification-service: true\n  reporting-service: false\n```\n\n## Data Migration (Dual-Write)\n```sql\n-- CDC trigger for User table\nCREATE TRIGGER user_cdc\nAFTER INSERT OR UPDATE ON users\nFOR EACH ROW EXECUTE FUNCTION notify_user_change();\n```\n\n## Roadmap\n| Phase | Service | Weeks | Risk |\n|-------|---------|-------|------|\n| 1 | Auth | 4 | Low |\n| 2 | Notification | 3 | Low |\n| 3 | Reporting | 4 | Medium |\n| 4 | Core Domain | 12 | High |\n\n## Rollback\n- Feature flag flip: instant\n- Database: point-in-time recovery (RDS)\n- Blue-green deploy: DNS switch"
+      }
+    ],
+    "variables": {
+      "language": {
+        "type": "string",
+        "description": "Legacy language",
+        "required": true,
+        "enum_values": ["Java", "C#", "C++", "VB.NET", "PHP", "Python 2", "COBOL", "Fortran", "Perl"]
+      },
+      "codebase_description": {
+        "type": "string",
+        "description": "Codebase description",
+        "required": true
+      },
+      "pain_points": {
+        "type": "string",
+        "description": "Current pain points",
+        "required": true
+      },
+      "constraints": {
+        "type": "string",
+        "description": "Constraints",
+        "required": true
+      },
+      "target_architecture": {
+        "type": "string",
+        "description": "Target architecture",
+        "required": true
+      },
+      "team_capacity": {
+        "type": "string",
+        "description": "Team capacity",
+        "required": true
+      }
+    }
+  },
+  "eval": {
+    "test_cases": [
+      {
+        "name": "java-spring-modernization",
+        "input": {
+          "language": "Java",
+          "codebase_description": "Spring MVC monolith, 500k LOC, Oracle DB",
+          "pain_points": "Slow deploys, tight coupling, Oracle costs",
+          "constraints": "No feature freeze, 5 devs, 6 months",
+          "target_architecture": "Spring Boot microservices, PostgreSQL, K8s",
+          "team_capacity": "5 devs, 20% modernization time"
+        },
+        "expected_output": "Strangler fig plan with characterization tests, anti-corruption layers, dual-write",
+        "criteria": ["characterization tests", "extraction order", "anti-corruption", "feature flags", "data migration", "rollback plan"]
+      }
+    ],
+    "metrics": [
+      { "name": "quality", "weight": 1.0, "threshold": 0.8 },
+      { "name": "latency", "weight": 0.3, "threshold": 10000 },
+      { "name": "cost", "weight": 0.2, "threshold": 0.003 }
+    ],
+    "judge_model": "qwen2.5-coder:1.5b",
+    "threshold": 0.75
+  },
+  "signature": {
+    "algorithm": "ed25519",
+    "public_key": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "signature": "placeholder_signature_hex_64_bytes",
+    "signed_at": "2026-11-24T10:00:00Z"
+  }
+}

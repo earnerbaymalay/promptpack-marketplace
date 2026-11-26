@@ -1,0 +1,84 @@
+{
+  "metadata": {
+    "id": "c3d4e5f678901234",
+    "name": "Security Analysis Pack",
+    "version": "1.0.0",
+    "author": "earnerbaymalay",
+    "author_pubkey": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "description": "OWASP Top 10, CWE mapping, and vulnerability assessment prompts for application security reviews",
+    "tags": ["security", "pentest", "owasp", "vulnerability", "cwe", "threat-modeling"],
+    "created_at": "2026-11-22T10:00:00Z",
+    "updated_at": "2026-11-24T10:00:00Z",
+    "license": "MIT",
+    "homepage": "https://github.com/earnerbaymalay/promptpack-marketplace",
+    "repository": "https://github.com/earnerbaymalay/promptpack-marketplace"
+  },
+  "prompt": {
+    "system": "You are an application security expert. Perform thorough security analysis using OWASP Top 10, CWE, and CAPEC frameworks. Provide CVSS scoring and remediation guidance.",
+    "user_template": "Analyze this {target_type} for security vulnerabilities:\n\nTarget: {target}\nContext: {context}\nScope: {scope}\n\nProvide findings with:\n1. **Vulnerability** (OWASP/CWE/CAPEC ID)\n2. **Severity** (CVSS 4.0 score)\n3. **Location** (specific file/function/endpoint)\n4. **Evidence** (code/config snippet)\n5. **Impact** (confidentiality/integrity/availability)\n6. **Remediation** (specific fix with code example)\n7. **References** (CVE, CWE, OWASP links)",
+    "few_shot": [
+      {
+        "input": {
+          "target_type": "web application",
+          "target": "User registration form with email/password",
+          "context": "Public-facing React + Node.js app",
+          "scope": "Authentication flow"
+        },
+        "output": "1. **A07:2021 - Identification and Authentication Failures** (CWE-307)\n2. **CVSS 4.0: 7.5 (High)**\n3. **Location** - `/src/components/RegisterForm.tsx:45`\n4. **Evidence** - No rate limiting on registration endpoint\n5. **Impact** - Account enumeration, brute force\n6. **Remediation** - Implement rate limiting: `express-rate-limit` with 5 req/min/IP\n7. **References** - CWE-307, OWASP A07, CAPEC-49"
+      }
+    ],
+    "variables": {
+      "target_type": {
+        "type": "string",
+        "description": "Type of target",
+        "required": true,
+        "enum_values": ["web application", "API", "mobile app", "infrastructure", "smart contract", "desktop app"]
+      },
+      "target": {
+        "type": "string",
+        "description": "Target description",
+        "required": true
+      },
+      "context": {
+        "type": "string",
+        "description": "Technical context",
+        "required": false,
+        "default": ""
+      },
+      "scope": {
+        "type": "string",
+        "description": "Assessment scope",
+        "required": false,
+        "default": "full"
+      }
+    }
+  },
+  "eval": {
+    "test_cases": [
+      {
+        "name": "owasp-a01-broken-access-control",
+        "input": {
+          "target_type": "API",
+          "target": "User profile endpoint /api/users/{id}",
+          "context": "REST API with JWT auth",
+          "scope": "Authorization"
+        },
+        "expected_output": "Identifies IDOR vulnerability, recommends authorization checks",
+        "criteria": ["identifies IDOR", "maps to OWASP A01", "provides CVSS", "specific fix"]
+      }
+    ],
+    "metrics": [
+      { "name": "quality", "weight": 1.0, "threshold": 0.8 },
+      { "name": "latency", "weight": 0.3, "threshold": 8000 },
+      { "name": "cost", "weight": 0.2, "threshold": 0.002 }
+    ],
+    "judge_model": "qwen2.5-coder:1.5b",
+    "threshold": 0.75
+  },
+  "signature": {
+    "algorithm": "ed25519",
+    "public_key": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "signature": "placeholder_signature_hex_64_bytes",
+    "signed_at": "2026-11-24T10:00:00Z"
+  }
+}

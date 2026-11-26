@@ -1,0 +1,93 @@
+{
+  "metadata": {
+    "id": "e5f6789012345678",
+    "name": "API Design & OpenAPI Spec",
+    "version": "1.0.0",
+    "author": "earnerbaymalay",
+    "author_pubkey": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "description": "Generate OpenAPI 3.1 specs, design REST/gRPC APIs, contract testing, and API governance",
+    "tags": ["api", "openapi", "rest", "grpc", "design", "contract-testing", "governance"],
+    "created_at": "2026-11-24T10:00:00Z",
+    "updated_at": "2026-11-24T10:00:00Z",
+    "license": "MIT",
+    "homepage": "https://github.com/earnerbaymalay/promptpack-marketplace",
+    "repository": "https://github.com/earnerbaymalay/promptpack-marketplace"
+  },
+  "prompt": {
+    "system": "You are an API architect. Design REST and gRPC APIs following best practices: resource-oriented design, proper HTTP semantics, versioning, pagination, error handling, and OpenAPI 3.1 specification generation.",
+    "user_template": "Design an API for {domain}:\n\nRequirements: {requirements}\nStyle: {style}\nAuthentication: {auth}\nRate limiting: {rate_limit}\n\nDeliverables:\n1. **Resource model** (entities, relationships)\n2. **Endpoint map** (method, path, params, responses)\n3. **OpenAPI 3.1 spec** (complete YAML)\n4. **Error model** (standardized error responses)\n5. **Pagination strategy** (cursor/offset)\n6. **Versioning strategy** (URL/header)\n7. **Contract tests** (schemathesis/pact examples)",
+    "few_shot": [
+      {
+        "input": {
+          "domain": "E-commerce orders",
+          "requirements": "Create, list, get, cancel orders; webhooks for status changes",
+          "style": "REST",
+          "auth": "JWT Bearer",
+          "rate_limit": "100 req/min"
+        },
+        "output": "## Resource Model\n\n### Order\n- `id`: string (UUID)\n- `customer_id`: string\n- `items`: OrderItem[]\n- `status`: enum (pending|confirmed|shipped|delivered|cancelled)\n- `created_at`: datetime\n- `updated_at`: datetime\n\n## Endpoints\n\n| Method | Path | Description |\n|--------|------|-------------|\n| POST | /orders | Create order |\n| GET | /orders | List orders (cursor pagination) |\n| GET | /orders/{id} | Get order |\n| POST | /orders/{id}/cancel | Cancel order |\n\n## OpenAPI 3.1 Spec\n```yaml\nopenapi: 3.1.0\ninfo:\n  title: Orders API\n  version: 1.0.0\nservers:\n  - url: https://api.example.com/v1\npaths:\n  /orders:\n    post:\n      summary: Create order\n      security:\n        - BearerAuth: []\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: '#/components/schemas/CreateOrderRequest'\n      responses:\n        '201':\n          description: Order created\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/Order'\n        '400':\n          $ref: '#/components/responses/ValidationError'\n        '401':\n          $ref: '#/components/responses/Unauthorized'\ncomponents:\n  securitySchemes:\n    BearerAuth:\n      type: http\n      scheme: bearer\n      bearerFormat: JWT\n  schemas:\n    CreateOrderRequest:\n      type: object\n      required: [customer_id, items]\n      properties:\n        customer_id:\n          type: string\n          format: uuid\n        items:\n          type: array\n          items:\n            $ref: '#/components/schemas/OrderItem'\n    OrderItem:\n      type: object\n      required: [product_id, quantity]\n      properties:\n        product_id:\n          type: string\n          format: uuid\n        quantity:\n          type: integer\n          minimum: 1\n    Order:\n      type: object\n      properties:\n        id:\n          type: string\n          format: uuid\n        customer_id:\n          type: string\n          format: uuid\n        items:\n          type: array\n          items:\n            $ref: '#/components/schemas/OrderItem'\n        status:\n          type: string\n          enum: [pending, confirmed, shipped, delivered, cancelled]\n        created_at:\n          type: string\n          format: date-time\n        updated_at:\n          type: string\n          format: date-time\n  responses:\n    ValidationError:\n      description: Validation error\n      content:\n        application/json:\n          schema:\n            type: object\n            properties:\n              error:\n                type: string\n              details:\n                type: array\n                items:\n                  type: object\n                  properties:\n                    field:\n                      type: string\n                    message:\n                      type: string\n    Unauthorized:\n      description: Unauthorized\n```"
+      }
+    ],
+    "variables": {
+      "domain": {
+        "type": "string",
+        "description": "API domain",
+        "required": true
+      },
+      "requirements": {
+        "type": "string",
+        "description": "Functional requirements",
+        "required": true
+      },
+      "style": {
+        "type": "string",
+        "description": "API style",
+        "required": false,
+        "default": "REST",
+        "enum_values": ["REST", "gRPC", "GraphQL", "tRPC"]
+      },
+      "auth": {
+        "type": "string",
+        "description": "Authentication",
+        "required": false,
+        "default": "JWT Bearer",
+        "enum_values": ["JWT Bearer", "API Key", "mTLS", "OAuth 2.0", "Session"]
+      },
+      "rate_limit": {
+        "type": "string",
+        "description": "Rate limiting",
+        "required": false,
+        "default": "100 req/min"
+      }
+    }
+  },
+  "eval": {
+    "test_cases": [
+      {
+        "name": "ecommerce-orders-rest",
+        "input": {
+          "domain": "E-commerce orders",
+          "requirements": "CRUD orders, webhooks, idempotency",
+          "style": "REST",
+          "auth": "JWT Bearer",
+          "rate_limit": "100 req/min"
+        },
+        "expected_output": "Complete OpenAPI 3.1 spec with all components",
+        "criteria": ["valid OpenAPI 3.1", "all endpoints defined", "schemas complete", "security defined", "examples included"]
+      }
+    ],
+    "metrics": [
+      { "name": "quality", "weight": 1.0, "threshold": 0.8 },
+      { "name": "latency", "weight": 0.3, "threshold": 8000 },
+      { "name": "cost", "weight": 0.2, "threshold": 0.002 }
+    ],
+    "judge_model": "qwen2.5-coder:1.5b",
+    "threshold": 0.75
+  },
+  "signature": {
+    "algorithm": "ed25519",
+    "public_key": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "signature": "placeholder_signature_hex_64_bytes",
+    "signed_at": "2026-11-24T10:00:00Z"
+  }
+}

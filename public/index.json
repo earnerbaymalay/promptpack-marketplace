@@ -1,5 +1,136 @@
 {
   "version": 1,
-  "updated_at": "2026-11-24T06:30:00Z",
-  "packs": []
+  "updated_at": "2026-11-25T15:30:00Z",
+  "packs": [
+    {
+      "id": "a1b2c3d4e5f67890",
+      "name": "Code Review Expert",
+      "version": "1.0.0",
+      "author": "earnerbaymalay",
+      "description": "Comprehensive code review prompts for security, performance, and maintainability across multiple languages",
+      "tags": ["code-review", "security", "rust", "typescript", "python", "go"],
+      "download_url": "https://earnerbaymalay.github.io/promptpack-marketplace/packs/code-review-expert.promptpack",
+      "signature": "ed25519",
+      "price_usd": 0,
+      "created_at": "2026-11-20T10:00:00Z",
+      "updated_at": "2026-11-24T10:00:00Z"
+    },
+    {
+      "id": "b2c3d4e5f6789012",
+      "name": "Technical Writing Assistant",
+      "version": "1.0.0",
+      "author": "earnerbaymalay",
+      "description": "Prompts for writing clear technical documentation, API docs, tutorials, and developer guides",
+      "tags": ["writing", "documentation", "technical", "api-docs", "tutorials"],
+      "download_url": "https://earnerbaymalay.github.io/promptpack-marketplace/packs/tech-writing.promptpack",
+      "signature": "ed25519",
+      "price_usd": 0,
+      "created_at": "2026-11-21T10:00:00Z",
+      "updated_at": "2026-11-24T10:00:00Z"
+    },
+    {
+      "id": "c3d4e5f678901234",
+      "name": "Security Analysis Pack",
+      "version": "1.0.0",
+      "author": "earnerbaymalay",
+      "description": "OWASP Top 10, CWE mapping, and vulnerability assessment prompts for application security reviews",
+      "tags": ["security", "pentest", "owasp", "vulnerability", "cwe", "threat-modeling"],
+      "download_url": "https://earnerbaymalay.github.io/promptpack-marketplace/packs/security-analysis.promptpack",
+      "signature": "ed25519",
+      "price_usd": 9.99,
+      "created_at": "2026-11-22T10:00:00Z",
+      "updated_at": "2026-11-24T10:00:00Z"
+    },
+    {
+      "id": "d4e5f67890123456",
+      "name": "Rust Performance Optimization",
+      "version": "1.0.0",
+      "author": "earnerbaymalay",
+      "description": "Prompts for optimizing Rust code: zero-cost abstractions, SIMD, async patterns, memory layout, and profiling",
+      "tags": ["rust", "performance", "optimization", "simd", "async", "profiling", "zero-cost"],
+      "download_url": "https://earnerbaymalay.github.io/promptpack-marketplace/packs/rust-perf.promptpack",
+      "signature": "ed25519",
+      "price_usd": 0,
+      "created_at": "2026-11-23T10:00:00Z",
+      "updated_at": "2026-11-24T10:00:00Z"
+    },
+    {
+      "id": "e5f6789012345678",
+      "name": "API Design & OpenAPI Spec",
+      "version": "1.0.0",
+      "author": "earnerbaymalay",
+      "description": "Generate OpenAPI 3.1 specs, design REST/gRPC APIs, contract testing, and API governance",
+      "tags": ["api", "openapi", "rest", "grpc", "design", "contract-testing", "governance"],
+      "download_url": "https://earnerbaymalay.github.io/promptpack-marketplace/packs/api-design.promptpack",
+      "signature": "ed25519",
+      "price_usd": 0,
+      "created_at": "2026-11-24T10:00:00Z",
+      "updated_at": "2026-11-24T10:00:00Z"
+    },
+    {
+      "id": "f678901234567890",
+      "name": "Threat Modeling Assistant",
+      "version": "1.0.0",
+      "author": "earnerbaymalay",
+      "description": "STRIDE, PASTA, and attack tree generation for system threat modeling with MITRE ATT&CK mapping",
+      "tags": ["threat-modeling", "stride", "pasta", "attack-tree", "mitre", "security"],
+      "download_url": "https://earnerbaymalay.github.io/promptpack-marketplace/packs/threat-modeling.promptpack",
+      "signature": "ed25519",
+      "price_usd": 14.99,
+      "created_at": "2026-11-20T10:00:00Z",
+      "updated_at": "2026-11-24T10:00:00Z"
+    },
+    {
+      "id": "7890123456789012",
+      "name": "Database Migration Planner",
+      "version": "1.0.0",
+      "author": "earnerbaymalay",
+      "description": "Generate migration scripts, rollback plans, and data validation checks for PostgreSQL, MySQL, SQLite",
+      "tags": ["database", "migration", "sql", "postgres", "mysql", "sqlite", "rollback"],
+      "download_url": "https://earnerbaymalay.github.io/promptpack-marketplace/packs/db-migration.promptpack",
+      "signature": "ed25519",
+      "price_usd": 0,
+      "created_at": "2026-11-21T10:00:00Z",
+      "updated_at": "2026-11-24T10:00:00Z"
+    },
+    {
+      "id": "8901234567890123",
+      "name": "CI/CD Pipeline Generator",
+      "version": "1.0.0",
+      "author": "earnerbaymalay",
+      "description": "Generate GitHub Actions, GitLab CI, Azure Pipelines, and CircleCI configs with best practices",
+      "tags": ["ci-cd", "github-actions", "gitlab", "azure-pipelines", "circleci", "devops", "pipeline"],
+      "download_url": "https://earnerbaymalay.github.io/promptpack-marketplace/packs/ci-cd.promptpack",
+      "signature": "ed25519",
+      "price_usd": 0,
+      "created_at": "2026-11-22T10:00:00Z",
+      "updated_at": "2026-11-24T10:00:00Z"
+    },
+    {
+      "id": "9012345678901234",
+      "name": "Legacy Code Modernization",
+      "version": "1.0.0",
+      "author": "earnerbaymalay",
+      "description": "Refactoring patterns, strangler fig, and incremental modernization strategies for legacy systems",
+      "tags": ["refactoring", "legacy", "modernization", "strangler-fig", "technical-debt", "migration"],
+      "download_url": "https://earnerbaymalay.github.io/promptpack-marketplace/packs/legacy-modern.promptpack",
+      "signature": "ed25519",
+      "price_usd": 19.99,
+      "created_at": "2026-11-23T10:00:00Z",
+      "updated_at": "2026-11-24T10:00:00Z"
+    },
+    {
+      "id": "0123456789012345",
+      "name": "Incident Response Playbook",
+      "version": "1.0.0",
+      "author": "earnerbaymalay",
+      "description": "Runbooks for common incidents: outages, security events, data loss, performance degradation",
+      "tags": ["incident-response", "runbook", "sre", "reliability", "on-call", "postmortem"],
+      "download_url": "https://earnerbaymalay.github.io/promptpack-marketplace/packs/incident-response.promptpack",
+      "signature": "ed25519",
+      "price_usd": 0,
+      "created_at": "2026-11-24T10:00:00Z",
+      "updated_at": "2026-11-24T10:00:00Z"
+    }
+  ]
 }

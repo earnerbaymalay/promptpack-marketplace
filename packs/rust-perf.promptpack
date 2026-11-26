@@ -1,0 +1,93 @@
+{
+  "metadata": {
+    "id": "d4e5f67890123456",
+    "name": "Rust Performance Optimization",
+    "version": "1.0.0",
+    "author": "earnerbaymalay",
+    "author_pubkey": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "description": "Prompts for optimizing Rust code: zero-cost abstractions, SIMD, async patterns, memory layout, and profiling",
+    "tags": ["rust", "performance", "optimization", "simd", "async", "profiling", "zero-cost"],
+    "created_at": "2026-11-23T10:00:00Z",
+    "updated_at": "2026-11-24T10:00:00Z",
+    "license": "MIT",
+    "homepage": "https://github.com/earnerbaymalay/promptpack-marketplace",
+    "repository": "https://github.com/earnerbaymalay/promptpack-marketplace"
+  },
+  "prompt": {
+    "system": "You are a Rust performance expert. Analyze code for allocations, cache misses, branch mispredictions, lock contention, and missed optimization opportunities. Provide specific benchmarks and before/after comparisons.",
+    "user_template": "Optimize this Rust code for {goal}:\n\n```rust\n{code}\n```\n\nTarget: {target_arch}\nConstraints: {constraints}\nCurrent profile: {profile_data}\n\nProvide:\n1. **Bottleneck** (what's slow)\n2. **Root cause** (why)\n3. **Optimization** (specific code change)\n4. **Expected speedup** (estimate)\n5. **Trade-offs** (complexity, safety, compile time)\n6. **Benchmark code** (criterion.rs)",
+    "few_shot": [
+      {
+        "input": {
+          "goal": "throughput",
+          "code": "fn process(items: &[u64]) -> u64 {\n    items.iter().map(|x| x * 2).sum()\n}",
+          "target_arch": "x86_64 (AVX2)",
+          "constraints": "safe Rust only",
+          "profile_data": "10M items, 45ms"
+        },
+        "output": "1. **Bottleneck** - Scalar iteration, no vectorization\n2. **Root cause** - Iterator chain prevents auto-vectorization\n3. **Optimization** - Use `portable_simd` or explicit chunking:\n```rust\nuse std::simd::u64x4;\nfn process(items: &[u64]) -> u64 {\n    let mut sum = 0u64;\n    for chunk in items.chunks_exact(4) {\n        let v = u64x4::from_slice(chunk) * u64x4::splat(2);\n        sum += v.reduce_sum();\n    }\n    sum + items.chunks_exact(4).remainder().iter().map(|x| x * 2).sum::<u64>()\n}\n```\n4. **Expected speedup** - 3-4x on AVX2\n5. **Trade-offs** - Requires nightly or `portable_simd` crate\n6. **Benchmark** - criterion bench with 10M items"
+      }
+    ],
+    "variables": {
+      "goal": {
+        "type": "string",
+        "description": "Optimization goal",
+        "required": true,
+        "enum_values": ["throughput", "latency", "memory", "binary_size", "compile_time"]
+      },
+      "code": {
+        "type": "string",
+        "description": "Rust code to optimize",
+        "required": true
+      },
+      "target_arch": {
+        "type": "string",
+        "description": "Target architecture",
+        "required": false,
+        "default": "x86_64",
+        "enum_values": ["x86_64", "x86_64 (AVX2)", "x86_64 (AVX-512)", "aarch64 (NEON)", "wasm32"]
+      },
+      "constraints": {
+        "type": "string",
+        "description": "Constraints",
+        "required": false,
+        "default": "safe Rust"
+      },
+      "profile_data": {
+        "type": "string",
+        "description": "Current profiling data",
+        "required": false,
+        "default": ""
+      }
+    }
+  },
+  "eval": {
+    "test_cases": [
+      {
+        "name": "simd-vectorization",
+        "input": {
+          "goal": "throughput",
+          "code": "fn dot_product(a: &[f32], b: &[f32]) -> f32 {\n    a.iter().zip(b).map(|(x, y)| x * y).sum()\n}",
+          "target_arch": "x86_64 (AVX2)",
+          "constraints": "safe Rust",
+          "profile_data": "1M elements, 12ms"
+        },
+        "expected_output": "Suggests portable_simd or explicit SIMD, provides benchmark",
+        "criteria": ["identifies vectorization opportunity", "provides SIMD code", "benchmark included", "speedup estimate"]
+      }
+    ],
+    "metrics": [
+      { "name": "quality", "weight": 1.0, "threshold": 0.8 },
+      { "name": "latency", "weight": 0.3, "threshold": 5000 },
+      { "name": "cost", "weight": 0.2, "threshold": 0.001 }
+    ],
+    "judge_model": "qwen2.5-coder:1.5b",
+    "threshold": 0.75
+  },
+  "signature": {
+    "algorithm": "ed25519",
+    "public_key": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "signature": "placeholder_signature_hex_64_bytes",
+    "signed_at": "2026-11-24T10:00:00Z"
+  }
+}

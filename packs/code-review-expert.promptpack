@@ -1,0 +1,96 @@
+{
+  "metadata": {
+    "id": "a1b2c3d4e5f67890",
+    "name": "Code Review Expert",
+    "version": "1.0.0",
+    "author": "earnerbaymalay",
+    "author_pubkey": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "description": "Comprehensive code review prompts for security, performance, and maintainability across multiple languages",
+    "tags": ["code-review", "security", "rust", "typescript", "python", "go"],
+    "created_at": "2026-11-20T10:00:00Z",
+    "updated_at": "2026-11-24T10:00:00Z",
+    "license": "MIT",
+    "homepage": "https://github.com/earnerbaymalay/promptpack-marketplace",
+    "repository": "https://github.com/earnerbaymalay/promptpack-marketplace"
+  },
+  "prompt": {
+    "system": "You are an expert code reviewer with deep knowledge of security vulnerabilities, performance optimization, and software engineering best practices. Review code thoroughly and provide actionable feedback with specific line references.",
+    "user_template": "Review this {language} code for {focus}:\n\n```{language}\n{code}\n```\n\nFocus areas: {focus_areas}\nProvide findings in this format:\n1. **Severity** (Critical/High/Medium/Low/Info)\n2. **Location** (file:function:line)\n3. **Issue** (what's wrong)\n4. **Impact** (what could happen)\n5. **Fix** (specific code change)",
+    "few_shot": [
+      {
+        "input": {
+          "language": "rust",
+          "code": "fn process_user_input(input: &str) {\n    let query = format!(\"SELECT * FROM users WHERE name = '{}'\", input);\n    db.execute(&query);\n}",
+          "focus": "security",
+          "focus_areas": "SQL injection, input validation"
+        },
+        "output": "1. **Critical** - process_user_input:2 - SQL injection via string interpolation\n2. **Impact** - Attackers can execute arbitrary SQL\n3. **Fix** - Use parameterized queries: `sqlx::query(\"SELECT * FROM users WHERE name = $1\").bind(input)`"
+      }
+    ],
+    "variables": {
+      "language": {
+        "type": "string",
+        "description": "Programming language",
+        "required": true,
+        "enum_values": ["rust", "typescript", "python", "go", "c", "cpp", "java", "csharp"]
+      },
+      "code": {
+        "type": "string",
+        "description": "Code to review",
+        "required": true
+      },
+      "focus": {
+        "type": "string",
+        "description": "Review focus",
+        "required": false,
+        "default": "general",
+        "enum_values": ["security", "performance", "style", "correctness", "maintainability", "general"]
+      },
+      "focus_areas": {
+        "type": "string",
+        "description": "Specific areas to focus on",
+        "required": false,
+        "default": "all"
+      }
+    }
+  },
+  "eval": {
+    "test_cases": [
+      {
+        "name": "sql-injection-rust",
+        "input": {
+          "language": "rust",
+          "code": "fn get_user(name: &str) -> Result<User> {\n    let sql = format!(\"SELECT * FROM users WHERE username = '{}'\", name);\n    pool.query(&sql)\n}",
+          "focus": "security",
+          "focus_areas": "SQL injection"
+        },
+        "expected_output": "Identifies SQL injection vulnerability, recommends parameterized queries",
+        "criteria": ["identifies SQL injection", "suggests parameterized queries", "explains risk"]
+      },
+      {
+        "name": "unsafe-block-rust",
+        "input": {
+          "language": "rust",
+          "code": "fn read_memory(ptr: *const u8) -> u8 {\n    unsafe { *ptr }\n}",
+          "focus": "correctness",
+          "focus_areas": "unsafe usage"
+        },
+        "expected_output": "Flags unsafe block, requests justification, suggests safe alternative",
+        "criteria": ["identifies unsafe", "requests justification", "suggests safe alternative"]
+      }
+    ],
+    "metrics": [
+      { "name": "quality", "weight": 1.0, "threshold": 0.75 },
+      { "name": "latency", "weight": 0.3, "threshold": 5000 },
+      { "name": "cost", "weight": 0.2, "threshold": 0.001 }
+    ],
+    "judge_model": "qwen2.5-coder:1.5b",
+    "threshold": 0.7
+  },
+  "signature": {
+    "algorithm": "ed25519",
+    "public_key": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "signature": "placeholder_signature_hex_64_bytes",
+    "signed_at": "2026-11-24T10:00:00Z"
+  }
+}

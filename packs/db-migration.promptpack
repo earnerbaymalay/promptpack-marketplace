@@ -1,0 +1,101 @@
+{
+  "metadata": {
+    "id": "7890123456789012",
+    "name": "Database Migration Planner",
+    "version": "1.0.0",
+    "author": "earnerbaymalay",
+    "author_pubkey": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "description": "Generate migration scripts, rollback plans, and data validation checks for PostgreSQL, MySQL, SQLite",
+    "tags": ["database", "migration", "sql", "postgres", "mysql", "sqlite", "rollback"],
+    "created_at": "2026-11-21T10:00:00Z",
+    "updated_at": "2026-11-24T10:00:00Z",
+    "license": "MIT",
+    "homepage": "https://github.com/earnerbaymalay/promptpack-marketplace",
+    "repository": "https://github.com/earnerbaymalay/promptpack-marketplace"
+  },
+  "prompt": {
+    "system": "You are a database engineer. Generate safe, idempotent migration scripts with proper transactions, rollback plans, and data validation. Follow best practices: backwards compatibility, zero-downtime, proper indexing.",
+    "user_template": "Plan a database migration for {db_type}:\n\nCurrent schema: {current_schema}\nTarget schema: {target_schema}\nMigration type: {migration_type}\nData volume: {data_volume}\nDowntime tolerance: {downtime}\n\nDeliverables:\n1. **Migration plan** (steps, order, dependencies)\n2. **Up migration** (SQL with transaction)\n3. **Down migration** (rollback SQL)\n4. **Validation queries** (pre/post checks)\n5. **Performance considerations** (indexes, locks)\n6. **Zero-downtime strategy** (if applicable)\n7. **Testing checklist**",
+    "few_shot": [
+      {
+        "input": {
+          "db_type": "PostgreSQL",
+          "current_schema": "users table with email VARCHAR(255)",
+          "target_schema": "users table with email VARCHAR(255) UNIQUE NOT NULL + email_verified BOOLEAN DEFAULT false",
+          "migration_type": "add_constraint",
+          "data_volume": "10M rows",
+          "downtime": "zero"
+        },
+        "output": "## Migration Plan\n\n### Step 1: Add nullable column (safe, no lock)\n```sql\nALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT false;\n```\n\n### Step 2: Backfill data (batched, no long locks)\n```sql\nUPDATE users SET email_verified = true WHERE email IS NOT NULL;\n```\n\n### Step 3: Add NOT NULL constraint (requires brief lock)\n```sql\nALTER TABLE users ALTER COLUMN email_verified SET NOT NULL;\n```\n\n### Step 4: Add UNIQUE index CONCURRENTLY (no write lock)\n```sql\nCREATE UNIQUE INDEX CONCURRENTLY idx_users_email ON users(email);\n```\n\n### Step 5: Add constraint using index\n```sql\nALTER TABLE users ADD CONSTRAINT users_email_unique UNIQUE USING INDEX idx_users_email;\n```\n\n## Rollback Plan\n```sql\nALTER TABLE users DROP CONSTRAINT users_email_unique;\nDROP INDEX CONCURRENTLY idx_users_email;\nALTER TABLE users ALTER COLUMN email_verified DROP NOT NULL;\nALTER TABLE users DROP COLUMN email_verified;\n```\n\n## Validation\n- Pre: `SELECT COUNT(*) FROM users WHERE email IS NULL;`\n- Post: `SELECT COUNT(*) FROM users WHERE email_verified = false;`\n- Constraint: `SELECT conname FROM pg_constraint WHERE conrelid = 'users'::regclass AND contype = 'u';`"
+      }
+    ],
+    "variables": {
+      "db_type": {
+        "type": "string",
+        "description": "Database type",
+        "required": true,
+        "enum_values": ["PostgreSQL", "MySQL", "SQLite", "SQL Server", "MariaDB"]
+      },
+      "current_schema": {
+        "type": "string",
+        "description": "Current schema description",
+        "required": true
+      },
+      "target_schema": {
+        "type": "string",
+        "description": "Target schema description",
+        "required": true
+      },
+      "migration_type": {
+        "type": "string",
+        "description": "Type of migration",
+        "required": false,
+        "default": "schema_change",
+        "enum_values": ["add_column", "drop_column", "rename_column", "change_type", "add_constraint", "drop_constraint", "add_index", "drop_index", "create_table", "drop_table", "data_migration"]
+      },
+      "data_volume": {
+        "type": "string",
+        "description": "Approximate row count",
+        "required": false,
+        "default": "unknown"
+      },
+      "downtime": {
+        "type": "string",
+        "description": "Downtime tolerance",
+        "required": false,
+        "default": "minimal",
+        "enum_values": ["zero", "minimal", "maintenance_window"]
+      }
+    }
+  },
+  "eval": {
+    "test_cases": [
+      {
+        "name": "postgres-add-unique-index",
+        "input": {
+          "db_type": "PostgreSQL",
+          "current_schema": "users table with email VARCHAR(255)",
+          "target_schema": "users table with email VARCHAR(255) UNIQUE NOT NULL",
+          "migration_type": "add_constraint",
+          "data_volume": "10M rows",
+          "downtime": "zero"
+        },
+        "expected_output": "Concurrent index creation, batched backfill, proper rollback",
+        "criteria": ["uses CONCURRENTLY", "batched updates", "transaction safety", "validation queries", "rollback tested"]
+      }
+    ],
+    "metrics": [
+      { "name": "quality", "weight": 1.0, "threshold": 0.8 },
+      { "name": "latency", "weight": 0.3, "threshold": 8000 },
+      { "name": "cost", "weight": 0.2, "threshold": 0.002 }
+    ],
+    "judge_model": "qwen2.5-coder:1.5b",
+    "threshold": 0.75
+  },
+  "signature": {
+    "algorithm": "ed25519",
+    "public_key": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "signature": "placeholder_signature_hex_64_bytes",
+    "signed_at": "2026-11-24T10:00:00Z"
+  }
+}
