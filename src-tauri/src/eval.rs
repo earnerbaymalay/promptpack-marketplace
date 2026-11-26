@@ -1,5 +1,5 @@
 use crate::{AppConfig, SharedState};
-use anyhow::{Context, Result};
+use anyhow::{Context, Result as AnyhowResult};
 use chrono::{DateTime, Utc};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -94,8 +94,11 @@ pub async fn run_eval(
     for (idx, test_case) in test_cases.iter().enumerate() {
         let start = Instant::now();
         
-        let prompt = build_prompt(&test_case)?;
-        let (output, tokens_in, tokens_out, latency_ms) = call_ollama(&client, &ollama_url, &model, &prompt).await?;
+        let prompt = build_prompt(&test_case)
+            .map_err(|e| format!("Failed to build prompt: {}", e))?;
+        
+        let (output, tokens_in, tokens_out, latency_ms) = call_ollama(&client, &ollama_url, &model, &prompt).await
+            .map_err(|e| format!("Ollama call failed: {}", e))?;
         
         let latency_ms = start.elapsed().as_millis() as u64;
         total_latency += latency_ms;
@@ -110,7 +113,8 @@ pub async fn run_eval(
         total_cost += cost;
         
         // Quality scoring via local judge (simplified)
-        let quality = score_quality(&test_case, &output)?;
+        let quality = score_quality(&test_case, &output)
+            .map_err(|e| format!("Failed to score quality: {}", e))?;
         total_quality += quality;
         
         let passed_threshold = quality >= 0.7;
@@ -166,7 +170,7 @@ pub async fn get_eval_results(pack_id: String) -> Result<Vec<EvalSummary>, Strin
     Ok(vec![])
 }
 
-fn build_prompt(test_case: &Value) -> Result<String> {
+fn build_prompt(test_case: &Value) -> AnyhowResult<String> {
     let system = test_case["system"].as_str().unwrap_or("");
     let template = test_case["template"].as_str().unwrap_or("{input}");
     let input = test_case["input"].as_str().unwrap_or("");
@@ -180,7 +184,7 @@ async fn call_ollama(
     url: &str,
     model: &str,
     prompt: &str,
-) -> Result<(String, Option<u32>, Option<u32>, u64)> {
+) -> AnyhowResult<(String, Option<u32>, Option<u32>, u64)> {
     let request = OllamaRequest {
         model: model.to_string(),
         prompt: prompt.to_string(),
@@ -217,7 +221,7 @@ async fn call_ollama(
     ))
 }
 
-fn score_quality(test_case: &Value, output: &str) -> Result<f32> {
+fn score_quality(test_case: &Value, output: &str) -> AnyhowResult<f32> {
     // Simple heuristic scoring - in production use a local judge model
     let criteria = test_case["criteria"].as_array()
         .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>())

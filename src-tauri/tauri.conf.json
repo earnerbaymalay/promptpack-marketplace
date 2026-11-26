@@ -1,15 +1,15 @@
 {
+  "$schema": "https://schema.tauri.app/config/2",
+  "identifier": "com.earnerbaymalay.promptpack-marketplace",
+  "productName": "PromptPack Marketplace",
+  "version": "0.1.0",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
-    "devPath": "http://localhost:1420",
-    "distDir": "../dist"
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
   },
-  "package": {
-    "productName": "PromptPack Marketplace",
-    "version": "0.1.0"
-  },
-  "tauri": {
+  "app": {
     "windows": [
       {
         "title": "PromptPack Marketplace",
@@ -24,16 +24,18 @@
     ],
     "security": {
       "csp": "default-src 'self' data: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https: fonts.googleapis.com;"
-    },
-    "plugins": {
-      "dialog": { "all": true },
-      "fs": { "all": true },
-      "shell": { "all": true, "open": true },
-      "store": { "all": true },
-      "opener": { "all": true },
-      "clipboard": { "all": true },
-      "notification": { "all": true },
-      "global-shortcut": { "all": true }
     }
+  },
+  "plugins": {
+    "dialog": null,
+    "fs": null,
+    "shell": { "open": true },
+    "store": null,
+    "opener": null,
+    "clipboard": null,
+    "notification": null
+  },
+  "bundle": {
+    "icon": []
   }
 }

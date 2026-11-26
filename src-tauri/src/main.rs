@@ -15,7 +15,7 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_clipboard::init())
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_global_shortcut::init())
+        // global-shortcut uses different API in v2
         .manage(state)
         .invoke_handler(tauri::generate_handler![
             pack::verify_pack,
@@ -35,4 +35,8 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+fn main() {
+    run();
 }

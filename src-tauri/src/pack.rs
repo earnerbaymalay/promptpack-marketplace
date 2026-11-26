@@ -1,5 +1,5 @@
 use crate::{AppConfig, SharedState};
-use anyhow::{Context, Result};
+use anyhow::{Context, Result as AnyhowResult};
 use chrono::{DateTime, Utc};
 use ed25519_dalek::{SigningKey, VerifyingKey, Signature, Signer, Verifier};
 use hex;
@@ -98,7 +98,9 @@ pub async fn verify_pack(pack_json: String) -> Result<PromptPack, String> {
         .map_err(|e| format!("Invalid JSON: {}", e))?;
 
     // Verify signature
-    let signing_data = compute_signing_data(&pack)?;
+    let signing_data = compute_signing_data(&pack)
+        .map_err(|e| format!("Failed to compute signing data: {}", e))?;
+    
     let verifying_key = VerifyingKey::from_bytes(
         &hex::decode(&pack.signature.public_key)
             .map_err(|e| format!("Invalid public key hex: {}", e))?
@@ -159,7 +161,8 @@ pub async fn create_pack(
     pack.metadata.updated_at = Utc::now();
 
     // Sign the pack
-    let signing_data = compute_signing_data(&pack)?;
+    let signing_data = compute_signing_data(&pack)
+        .map_err(|e| format!("Failed to compute signing data: {}", e))?;
     let signature = signing_key.sign(&signing_data);
     pack.signature.signature = hex::encode(signature.to_bytes());
     pack.signature.signed_at = Utc::now();
@@ -175,7 +178,7 @@ pub async fn extract_pack(pack_json: String) -> Result<PromptPack, String> {
         .map_err(|e| format!("Invalid JSON: {}", e))
 }
 
-fn compute_signing_data(pack: &PromptPack) -> Result<Vec<u8>> {
+fn compute_signing_data(pack: &PromptPack) -> AnyhowResult<Vec<u8>> {
     // Create deterministic signing data (exclude signature field)
     let mut hasher = Sha256::new();
     let metadata_json = serde_json::to_vec(&pack.metadata)?;
@@ -189,7 +192,7 @@ fn compute_signing_data(pack: &PromptPack) -> Result<Vec<u8>> {
 
 #[tauri::command]
 pub async fn watch_packs_dir(path: String, state: tauri::State<'_, SharedState<AppConfig>>) -> Result<(), String> {
-    let config = state.read().await;
+    let _config = state.read().await;
     let path = PathBuf::from(path);
     
     let (tx, mut rx) = tokio::sync::mpsc::channel(100);
