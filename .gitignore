@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+target/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+*.msi
+*.dmg
+*.app
+*.deb
+*.rpm
+*.apk
+*.AppImage
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Coverage
+coverage/
+*.lcov
+
+# Profiling
+*.profraw
+*.profdata
+
+# Cargo
+.cargo/
+
+# Tauri specific
+**/tauri.conf.json.local
+**/tauri.conf.json.*.local
+
+# AI State / Cache (contains secrets)
+ai-state/
+*.cache/
+
+# Large binary assets
+*.wasm
+*.node
