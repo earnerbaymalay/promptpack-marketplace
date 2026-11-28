@@ -1,4 +1,4 @@
-use promptpack_marketplace::{eval, pack, registry, store, AppConfig, SharedState};
+use promptpack_marketplace::{eval, pack, registry, store, stripe, AppConfig, SharedState};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -31,6 +31,10 @@ pub fn run() {
             store::set_config,
             store::get_eval_history,
             store::get_installed_packs,
+            stripe::create_checkout_session,
+            stripe::handle_stripe_webhook,
+            stripe::verify_download_token,
+            stripe::download_pack_secure,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

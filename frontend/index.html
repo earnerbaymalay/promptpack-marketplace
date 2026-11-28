@@ -297,17 +297,20 @@
           </div>
 
           <div class="settings-card">
-            <h3>Stripe (Placeholder)</h3>
-            <p style="color: var(--fg-muted); font-size: 13px; margin-bottom: 16px;">Stripe integration for paid packs - not yet implemented</p>
+            <h3>Stripe Configuration</h3>
             <div class="form-group">
-              <label class="form-label" for="stripe-key">Publishable Key</label>
-              <input type="text" id="stripe-key" class="form-input" placeholder="pk_test_..." disabled>
+              <label class="form-label" for="stripe-publishable">Publishable Key</label>
+              <input type="text" id="stripe-publishable" class="form-input" placeholder="pk_test_...">
             </div>
             <div class="form-group">
               <label class="form-label" for="stripe-secret">Secret Key (server-side only)</label>
-              <input type="password" id="stripe-secret" class="form-input" placeholder="sk_test_..." disabled>
+              <input type="password" id="stripe-secret" class="form-input" placeholder="sk_test_...">
             </div>
-            <button class="btn" disabled>Configure Stripe</button>
+            <div class="form-group">
+              <label class="form-label" for="stripe-webhook">Webhook Secret</label>
+              <input type="password" id="stripe-webhook" class="form-input" placeholder="whsec_...">
+            </div>
+            <button class="btn primary" id="save-stripe-btn">Save Stripe Config</button>
           </div>
         </div>
       </section>
@@ -407,11 +410,15 @@
         grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--fg-muted); padding: 60px;">No packs installed. Drop a .promptpack file to get started.</div>';
         return;
       }
-      grid.innerHTML = packs.map(pack => `
+      grid.innerHTML = packs.map(pack => {
+        const isPaid = pack.price_usd && pack.price_usd > 0;
+        const priceDisplay = isPaid ? `$${pack.price_usd.toFixed(2)}` : 'Free';
+        const priceClass = isPaid ? 'style="color: var(--accent);"' : '';
+        return `
         <div class="pack-card" data-id="${pack.id}">
           <div class="pack-header">
             <span class="pack-name">${escapeHtml(pack.name)}</span>
-            <span class="pack-badge">v${pack.version}</span>
+            <span class="pack-badge" ${priceClass}>${priceDisplay}</span>
           </div>
           <p class="pack-desc">${escapeHtml(pack.description || 'No description')}</p>
           <div class="pack-meta">
@@ -419,11 +426,14 @@
             <span>👤 ${escapeHtml(pack.author || 'Unknown')}</span>
           </div>
           <div class="pack-actions">
-            <button class="btn small" onclick="runPackEval('${pack.id}')">Run Eval</button>
+            ${isPaid ? 
+              `<button class="btn small primary" onclick="buyPack('${pack.id}')">Buy Pack</button>` 
+              : `<button class="btn small" onclick="runPackEval('${pack.id}')">Run Eval</button>`
+            }
             <button class="btn small" onclick="uninstallPack('${pack.id}')">Uninstall</button>
           </div>
         </div>
-      `).join('');
+      `}).join('');
     }
 
     function escapeHtml(text) {
@@ -454,6 +464,31 @@
         await loadPacks();
       } catch (e) {
         showToast(`Failed to uninstall: ${e}`, 'error');
+      }
+    };
+
+    window.buyPack = async function(packId) {
+      const pack = packs.find(p => p.id === packId);
+      if (!pack) return;
+      
+      showToast(`Creating checkout session for ${pack.name}...`);
+      try {
+        const result = await invoke('create_checkout_session', {
+          request: {
+            packId: packId,
+            successUrl: window.location.origin + window.location.pathname + '?success=true&pack=' + packId,
+            cancelUrl: window.location.origin + window.location.pathname + '?canceled=true&pack=' + packId,
+            customerEmail: undefined
+          }
+        });
+        
+        if (result.url) {
+          window.location.href = result.url;
+        } else {
+          showToast('Failed to create checkout session', 'error');
+        }
+      } catch (e) {
+        showToast(`Failed to create checkout: ${e}`, 'error');
       }
     };
 
@@ -529,6 +564,21 @@
         showToast('Registry index fetched', 'success');
       } catch (e) {
         showToast(`Failed to fetch: ${e}`, 'error');
+      }
+    });
+
+    // Stripe config
+    document.getElementById('save-stripe-btn').addEventListener('click', async () => {
+      const publishable = document.getElementById('stripe-publishable').value;
+      const secret = document.getElementById('stripe-secret').value;
+      const webhook = document.getElementById('stripe-webhook').value;
+      try {
+        if (publishable) await invoke('set_config', { key: 'stripe_publishable_key', value: publishable });
+        if (secret) await invoke('set_config', { key: 'stripe_secret_key', value: secret });
+        if (webhook) await invoke('set_config', { key: 'stripe_webhook_secret', value: webhook });
+        showToast('Stripe configuration saved', 'success');
+      } catch (e) {
+        showToast(`Failed to save Stripe config: ${e}`, 'error');
       }
     });
 

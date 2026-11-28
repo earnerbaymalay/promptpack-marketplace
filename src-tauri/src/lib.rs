@@ -2,6 +2,7 @@ pub mod pack;
 pub mod eval;
 pub mod registry;
 pub mod store;
+pub mod stripe;
 
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -14,6 +15,8 @@ pub struct AppConfig {
     pub default_model: String,
     pub temperature: f32,
     pub stripe_publishable_key: Option<String>,
+    pub stripe_secret_key: Option<String>,
+    pub stripe_webhook_secret: Option<String>,
     pub registry_url: String,
 }
 
@@ -24,6 +27,8 @@ impl Default for AppConfig {
             default_model: "qwen2.5-coder:1.5b".into(),
             temperature: 0.1,
             stripe_publishable_key: None,
+            stripe_secret_key: None,
+            stripe_webhook_secret: None,
             registry_url: "https://earnerbaymalay.github.io/promptpack-index/index.json".into(),
         }
     }

@@ -37,3 +37,7 @@ notify = "6.1"
 walkdir = "2.3"
 dashmap = "5.5"
 once_cell = "1.19"
+# Stripe integration
+# Webhook verification
+ring = "0.17"
+hmac = "0.12"

@@ -24,6 +24,9 @@ pub async fn set_config(
         "ollama_url" => config.ollama_url = value,
         "ollama_timeout" => config.default_model = value, // repurposing for simplicity
         "registry_url" => config.registry_url = value,
+        "stripe_publishable_key" => config.stripe_publishable_key = Some(value),
+        "stripe_secret_key" => config.stripe_secret_key = Some(value),
+        "stripe_webhook_secret" => config.stripe_webhook_secret = Some(value),
         _ => return Err(format!("Unknown config key: {}", key)),
     }
     Ok(())
