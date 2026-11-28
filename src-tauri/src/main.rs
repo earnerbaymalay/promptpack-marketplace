@@ -4,7 +4,7 @@ use tokio::sync::RwLock;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let app_config = AppConfig::default();
+    let app_config = AppConfig::from_brain();
     let state: SharedState<AppConfig> = Arc::new(RwLock::new(app_config));
 
     tauri::Builder::default()
@@ -29,7 +29,6 @@ pub fn run() {
             registry::download_pack,
             store::get_config,
             store::set_config,
-            store::save_eval_history,
             store::get_eval_history,
             store::get_installed_packs,
         ])

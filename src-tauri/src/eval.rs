@@ -1,238 +1,197 @@
+//! Evaluate a prompt pack against a local Ollama model.
+//!
+//! Each eval test case is run through the pack's real prompt (system prompt,
+//! few-shot examples, user template filled with the case's inputs). A judge
+//! model (the pack's `eval.judge_model`) then scores the answer 0..1 against
+//! the case's criteria. Timing comes from Ollama's own counters.
+
+use crate::pack::{EvalTestCase, PromptPack};
 use crate::{AppConfig, SharedState};
-use anyhow::{Context, Result as AnyhowResult};
 use chrono::{DateTime, Utc};
-use reqwest::Client;
+use ollama_client::{ChatRequest, Client, Message, Options};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::collections::HashMap;
-use std::time::{Duration, Instant};
-use uuid::Uuid;
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EvalResult {
-    pub id: String,
-    pub pack_id: String,
-    pub model: String,
     pub test_case: String,
-    pub input: HashMap<String, String>,
+    pub input: BTreeMap<String, String>,
     pub output: String,
-    pub latency_ms: u64,
-    pub tokens_in: u32,
-    pub tokens_out: u32,
-    pub cost_usd: f64,
-    pub quality_score: f32,
+    pub tokens_in: u64,
+    pub tokens_out: u64,
+    pub total_ms: f64,
+    pub ttft_ms: f64,
+    pub tpot_ms: f64,
+    pub tokens_per_sec: f64,
+    /// 0..1 from the judge model; `None` if judging failed.
+    pub quality_score: Option<f32>,
+    pub judge_reason: String,
     pub passed: bool,
-    pub metrics: HashMap<String, f32>,
-    pub evaluated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EvalSummary {
     pub pack_id: String,
+    pub pack_name: String,
     pub model: String,
+    pub judge_model: String,
+    pub threshold: f32,
     pub total_cases: usize,
     pub passed: usize,
     pub failed: usize,
-    pub avg_latency_ms: f64,
-    pub total_tokens_in: u32,
-    pub total_tokens_out: u32,
-    pub total_cost_usd: f64,
     pub avg_quality: f32,
-    pub overall_score: f32,
+    pub avg_tokens_per_sec: f64,
+    pub avg_ttft_ms: f64,
+    pub avg_tpot_ms: f64,
+    pub total_tokens_in: u64,
+    pub total_tokens_out: u64,
     pub details: Vec<EvalResult>,
     pub evaluated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct OllamaRequest {
-    model: String,
-    prompt: String,
-    system: Option<String>,
-    template: Option<String>,
-    stream: bool,
-    options: OllamaOptions,
+/// Fill `{name}` placeholders from `inputs`, falling back to variable defaults.
+/// Unknown placeholders are left as-is so literal braces in prompts survive.
+pub fn render_template(pack: &PromptPack, inputs: &BTreeMap<String, String>) -> String {
+    let mut out = pack.prompt.user_template.clone();
+    for (name, spec) in &pack.prompt.variables {
+        let value = inputs.get(name).cloned().or_else(|| spec.default.clone()).unwrap_or_default();
+        out = out.replace(&format!("{{{name}}}"), &value);
+    }
+    for (name, value) in inputs {
+        out = out.replace(&format!("{{{name}}}"), value);
+    }
+    out
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct OllamaOptions {
-    temperature: f32,
-    top_p: f32,
-    top_k: u32,
-    num_predict: i32,
+/// Messages for one case: system prompt, few-shot pairs, then the filled template.
+pub fn build_messages(pack: &PromptPack, inputs: &BTreeMap<String, String>) -> Vec<Message> {
+    let mut messages = vec![Message::system(&pack.prompt.system)];
+    for shot in &pack.prompt.few_shot {
+        messages.push(Message::user(render_template(pack, &shot.input)));
+        messages.push(Message::assistant(&shot.output));
+    }
+    messages.push(Message::user(render_template(pack, inputs)));
+    messages
 }
 
-#[derive(Debug, Deserialize)]
-struct OllamaResponse {
-    response: String,
-    eval_count: Option<u32>,
-    eval_duration: Option<u64>,
-    prompt_eval_count: Option<u32>,
-    prompt_eval_duration: Option<u64>,
-    done: bool,
+#[derive(Deserialize)]
+struct Verdict {
+    score: f32,
+    #[serde(default)]
+    reason: String,
 }
 
-#[tauri::command]
-pub async fn run_eval(
-    pack_id: String,
-    model: Option<String>,
-    test_cases: Vec<serde_json::Value>,
-    state: tauri::State<'_, SharedState<AppConfig>>,
-) -> Result<EvalSummary, String> {
-    let config = state.read().await;
-    let client = Client::new();
-    let model = model.unwrap_or_else(|| config.default_model.clone());
-    let ollama_url = config.ollama_url.clone();
+/// Ask the judge model for {"score": 0..1, "reason": "..."}.
+async fn judge(client: &Client, judge_model: &str, case: &EvalTestCase, answer: &str) -> Result<Verdict, String> {
+    let criteria = case.criteria.iter().map(|c| format!("- {c}")).collect::<Vec<_>>().join("\n");
+    let expected = case.expected_output.as_deref().map(|e| format!("\nReference answer (for guidance):\n{e}\n")).unwrap_or_default();
+    let prompt = format!(
+        "You grade an AI answer against criteria.\n\nCriteria:\n{criteria}\n{expected}\nAnswer to grade:\n<<<\n{answer}\n>>>\n\n\
+         Reply with ONLY a JSON object: {{\"score\": <number 0 to 1, fraction of criteria met>, \"reason\": \"<one sentence>\"}}"
+    );
+    let req = ChatRequest::new(judge_model, vec![Message::user(prompt)])
+        .options(Options { temperature: Some(0.0), max_tokens: Some(200), ..Default::default() });
+    let text = client.chat(&req).await.map_err(|e| e.to_string())?.message.content;
+    parse_verdict(&text)
+}
 
-    let mut results = Vec::new();
-    let mut total_latency = 0u64;
-    let mut total_tokens_in = 0u32;
-    let mut total_tokens_out = 0u32;
-    let mut total_cost = 0.0f64;
-    let mut total_quality = 0.0f32;
-    let mut passed = 0;
+/// Pull the first {...} block out of the judge's reply (models often add prose or fences).
+fn parse_verdict(text: &str) -> Result<Verdict, String> {
+    let start = text.find('{').ok_or("judge reply has no JSON")?;
+    let end = text.rfind('}').ok_or("judge reply has no JSON")?;
+    let mut v: Verdict = serde_json::from_str(&text[start..=end]).map_err(|e| format!("bad judge JSON: {e}"))?;
+    v.score = v.score.clamp(0.0, 1.0);
+    Ok(v)
+}
 
-    for (idx, test_case) in test_cases.iter().enumerate() {
-        let start = Instant::now();
-        
-        let prompt = build_prompt(&test_case)
-            .map_err(|e| format!("Failed to build prompt: {}", e))?;
-        
-        let (output, tokens_in, tokens_out, latency_ms) = call_ollama(&client, &ollama_url, &model, &prompt).await
-            .map_err(|e| format!("Ollama call failed: {}", e))?;
-        
-        let latency_ms = start.elapsed().as_millis() as u64;
-        total_latency += latency_ms;
-        
-        let tokens_in = tokens_in.unwrap_or(0);
-        let tokens_out = tokens_out.unwrap_or(0);
-        total_tokens_in += tokens_in;
-        total_tokens_out += tokens_out;
-        
-        // Calculate cost (rough estimate: $0.001 per 1k tokens for local compute)
-        let cost = (tokens_in + tokens_out) as f64 * 0.000001;
-        total_cost += cost;
-        
-        // Quality scoring via local judge (simplified)
-        let quality = score_quality(&test_case, &output)
-            .map_err(|e| format!("Failed to score quality: {}", e))?;
-        total_quality += quality;
-        
-        let passed_threshold = quality >= 0.7;
-        if passed_threshold { passed += 1; }
-        
-        let mut metrics = HashMap::new();
-        metrics.insert("latency_ms".into(), latency_ms as f32);
-        metrics.insert("quality".into(), quality);
-        metrics.insert("tokens_per_sec".into(), if latency_ms > 0 { tokens_out as f32 / (latency_ms as f32 / 1000.0) } else { 0.0 });
-        
-        results.push(EvalResult {
-            id: Uuid::new_v4().to_string(),
-            pack_id: pack_id.clone(),
-            model: model.clone(),
-            test_case: format!("case_{}", idx),
-            input: serde_json::from_value(test_case["input"].clone()).unwrap_or_default(),
-            output,
-            latency_ms,
-            tokens_in,
-            tokens_out,
-            cost_usd: cost,
-            quality_score: quality,
-            passed: passed_threshold,
-            metrics,
-            evaluated_at: Utc::now(),
+/// Run every eval test case in `pack` on `model`, judged by the pack's judge model.
+pub async fn evaluate(client: &Client, pack: &PromptPack, model: &str, temperature: f32) -> Result<EvalSummary, String> {
+    let mut details = Vec::new();
+    for (i, case) in pack.eval.test_cases.iter().enumerate() {
+        let req = ChatRequest::new(model, build_messages(pack, &case.input))
+            .options(Options { temperature: Some(temperature), max_tokens: Some(2048), ..Default::default() });
+        let resp = client.chat(&req).await.map_err(|e| format!("case {}: {e}", case.name))?;
+        let m = resp.metrics;
+
+        let (quality_score, judge_reason) = match judge(client, &pack.eval.judge_model, case, &resp.message.content).await {
+            Ok(v) => (Some(v.score), v.reason),
+            Err(e) => (None, format!("judge failed: {e}")),
+        };
+        details.push(EvalResult {
+            test_case: if case.name.is_empty() { format!("case_{i}") } else { case.name.clone() },
+            input: case.input.clone(),
+            output: resp.message.content,
+            tokens_in: m.prompt_eval_count,
+            tokens_out: m.eval_count,
+            total_ms: m.total_ms(),
+            ttft_ms: m.ttft_ms(),
+            tpot_ms: m.tpot_ms(),
+            tokens_per_sec: m.tokens_per_sec(),
+            quality_score,
+            judge_reason,
+            passed: quality_score.is_some_and(|q| q >= pack.eval.threshold),
         });
     }
-
-    let avg_latency = if results.is_empty() { 0.0 } else { total_latency as f64 / results.len() as f64 };
-    let avg_quality = if results.is_empty() { 0.0 } else { total_quality / results.len() as f32 };
-    let overall_score = (passed as f32 / results.len().max(1) as f32) * 0.5 + avg_quality * 0.5;
-
-    Ok(EvalSummary {
-        pack_id,
-        model,
-        total_cases: results.len(),
-        passed,
-        failed: results.len() - passed,
-        avg_latency_ms: avg_latency,
-        total_tokens_in,
-        total_tokens_out,
-        total_cost_usd: total_cost,
-        avg_quality,
-        overall_score,
-        details: results,
-        evaluated_at: Utc::now(),
-    })
+    Ok(summarize(pack, model, details))
 }
 
+fn summarize(pack: &PromptPack, model: &str, details: Vec<EvalResult>) -> EvalSummary {
+    let n = details.len().max(1) as f64;
+    let avg = |f: fn(&EvalResult) -> f64| details.iter().map(f).sum::<f64>() / n;
+    let judged: Vec<f32> = details.iter().filter_map(|d| d.quality_score).collect();
+    let passed = details.iter().filter(|d| d.passed).count();
+    EvalSummary {
+        pack_id: pack.metadata.id.clone(),
+        pack_name: pack.metadata.name.clone(),
+        model: model.to_string(),
+        judge_model: pack.eval.judge_model.clone(),
+        threshold: pack.eval.threshold,
+        total_cases: details.len(),
+        passed,
+        failed: details.len() - passed,
+        avg_quality: if judged.is_empty() { 0.0 } else { judged.iter().sum::<f32>() / judged.len() as f32 },
+        avg_tokens_per_sec: avg(|d| d.tokens_per_sec),
+        avg_ttft_ms: avg(|d| d.ttft_ms),
+        avg_tpot_ms: avg(|d| d.tpot_ms),
+        total_tokens_in: details.iter().map(|d| d.tokens_in).sum(),
+        total_tokens_out: details.iter().map(|d| d.tokens_out).sum(),
+        details,
+        evaluated_at: Utc::now(),
+    }
+}
+
+/// Verify `pack_json`, then evaluate it on `model` (default: configured model).
+#[tauri::command]
+pub async fn run_eval(
+    pack_json: String,
+    model: Option<String>,
+    state: tauri::State<'_, SharedState<AppConfig>>,
+) -> Result<EvalSummary, String> {
+    let pack = crate::pack::verify_pack(pack_json).await?;
+    let (url, default_model, temperature) = {
+        let c = state.read().await;
+        (c.ollama_url.clone(), c.default_model.clone(), c.temperature)
+    };
+    let summary = evaluate(&Client::new(&url), &pack, model.as_deref().unwrap_or(&default_model), temperature).await?;
+    crate::store::append_eval(&summary).map_err(|e| format!("eval ran but saving history failed: {e}"))?;
+    Ok(summary)
+}
+
+/// Past eval summaries for a pack, newest first.
 #[tauri::command]
 pub async fn get_eval_results(pack_id: String) -> Result<Vec<EvalSummary>, String> {
-    // In real implementation, load from local store
-    Ok(vec![])
+    crate::store::load_evals(&pack_id).map_err(|e| e.to_string())
 }
 
-fn build_prompt(test_case: &Value) -> AnyhowResult<String> {
-    let system = test_case["system"].as_str().unwrap_or("");
-    let template = test_case["template"].as_str().unwrap_or("{input}");
-    let input = test_case["input"].as_str().unwrap_or("");
-    
-    let prompt = template.replace("{input}", input);
-    Ok(format!("System: {}\n\nUser: {}", system, prompt))
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-async fn call_ollama(
-    client: &Client,
-    url: &str,
-    model: &str,
-    prompt: &str,
-) -> AnyhowResult<(String, Option<u32>, Option<u32>, u64)> {
-    let request = OllamaRequest {
-        model: model.to_string(),
-        prompt: prompt.to_string(),
-        system: None,
-        template: None,
-        stream: false,
-        options: OllamaOptions {
-            temperature: 0.1,
-            top_p: 0.9,
-            top_k: 40,
-            num_predict: 2048,
-        },
-    };
-
-    let start = Instant::now();
-    let response = client
-        .post(&format!("{}/api/generate", url))
-        .json(&request)
-        .timeout(Duration::from_secs(120))
-        .send()
-        .await
-        .context("Failed to call Ollama")?;
-
-    let latency_ms = start.elapsed().as_millis() as u64;
-    
-    let resp: OllamaResponse = response.json().await
-        .context("Failed to parse Ollama response")?;
-
-    Ok((
-        resp.response,
-        resp.prompt_eval_count,
-        resp.eval_count,
-        latency_ms,
-    ))
-}
-
-fn score_quality(test_case: &Value, output: &str) -> AnyhowResult<f32> {
-    // Simple heuristic scoring - in production use a local judge model
-    let criteria = test_case["criteria"].as_array()
-        .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>())
-        .unwrap_or_default();
-    
-    if criteria.is_empty() {
-        // Length-based heuristic
-        let len = output.len() as f32;
-        return Ok((len / 100.0).min(1.0).max(0.1));
+    #[test]
+    fn verdict_parsing_tolerates_prose_and_clamps() {
+        let v = parse_verdict("Sure!\n```json\n{\"score\": 1.4, \"reason\": \"all met\"}\n```").unwrap();
+        assert_eq!(v.score, 1.0);
+        assert_eq!(v.reason, "all met");
+        assert!(parse_verdict("no json here").is_err());
     }
-    
-    let matches = criteria.iter().filter(|c| output.to_lowercase().contains(&c.to_lowercase())).count();
-    Ok(matches as f32 / criteria.len() as f32)
 }

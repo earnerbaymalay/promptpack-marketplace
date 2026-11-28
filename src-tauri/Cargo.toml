@@ -24,6 +24,9 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 ed25519-dalek = "2.0"
 sha2 = "0.10"
 getrandom = "0.2"
+# Shared crates from the ai-cli-work workspace (this repo lives at ai-cli-work/promptpack-marketplace)
+ollama-client = { path = "../../shared/ollama-client" }
+palexus-brain-schema = { path = "../../shared/palexus-brain-schema" }
 hex = "0.4"
 uuid = { version = "1.8", features = ["v4", "v7", "serde", "fast-rng"] }
 chrono = { version = "0.4", features = ["serde"] }
