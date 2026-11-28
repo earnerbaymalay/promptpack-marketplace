@@ -1,12 +1,19 @@
 {
   "metadata": {
-    "id": "9012345678901234",
+    "id": "477dc76230956dc0",
     "name": "Legacy Code Modernization",
     "version": "1.0.0",
     "author": "earnerbaymalay",
-    "author_pubkey": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "author_pubkey": "26192987722e7b50b83063e767fe2e64d772d20bc1aaf89432229cfb87c35719",
     "description": "Refactoring patterns, strangler fig, and incremental modernization strategies for legacy systems",
-    "tags": ["refactoring", "legacy", "modernization", "strangler-fig", "technical-debt", "migration"],
+    "tags": [
+      "refactoring",
+      "legacy",
+      "modernization",
+      "strangler-fig",
+      "technical-debt",
+      "migration"
+    ],
     "created_at": "2026-11-23T10:00:00Z",
     "updated_at": "2026-11-24T10:00:00Z",
     "license": "MIT",
@@ -19,10 +26,10 @@
     "few_shot": [
       {
         "input": {
-          "language": "Java",
           "codebase_description": "Spring MVC monolith (500k LOC), 15 years old, no tests, Oracle DB, JSP frontend",
-          "pain_points": "Deploy takes 2 hours, any change breaks unrelated features, Oracle license costs, hiring difficult",
           "constraints": "Cannot stop feature work, 5 developers, 6-month timeline",
+          "language": "Java",
+          "pain_points": "Deploy takes 2 hours, any change breaks unrelated features, Oracle license costs, hiring difficult",
           "target_architecture": "Spring Boot microservices, PostgreSQL, React frontend, Kubernetes",
           "team_capacity": "5 devs, 20% time for modernization"
         },
@@ -30,36 +37,57 @@
       }
     ],
     "variables": {
-      "language": {
-        "type": "string",
-        "description": "Legacy language",
-        "required": true,
-        "enum_values": ["Java", "C#", "C++", "VB.NET", "PHP", "Python 2", "COBOL", "Fortran", "Perl"]
-      },
       "codebase_description": {
         "type": "string",
         "description": "Codebase description",
-        "required": true
-      },
-      "pain_points": {
-        "type": "string",
-        "description": "Current pain points",
-        "required": true
+        "required": true,
+        "default": null,
+        "enum_values": null
       },
       "constraints": {
         "type": "string",
         "description": "Constraints",
-        "required": true
+        "required": true,
+        "default": null,
+        "enum_values": null
+      },
+      "language": {
+        "type": "string",
+        "description": "Legacy language",
+        "required": true,
+        "default": null,
+        "enum_values": [
+          "Java",
+          "C#",
+          "C++",
+          "VB.NET",
+          "PHP",
+          "Python 2",
+          "COBOL",
+          "Fortran",
+          "Perl"
+        ]
+      },
+      "pain_points": {
+        "type": "string",
+        "description": "Current pain points",
+        "required": true,
+        "default": null,
+        "enum_values": null
       },
       "target_architecture": {
         "type": "string",
         "description": "Target architecture",
-        "required": true
+        "required": true,
+        "default": null,
+        "enum_values": null
       },
       "team_capacity": {
         "type": "string",
         "description": "Team capacity",
-        "required": true
+        "required": true,
+        "default": null,
+        "enum_values": null
       }
     }
   },
@@ -68,29 +96,48 @@
       {
         "name": "java-spring-modernization",
         "input": {
-          "language": "Java",
           "codebase_description": "Spring MVC monolith, 500k LOC, Oracle DB",
-          "pain_points": "Slow deploys, tight coupling, Oracle costs",
           "constraints": "No feature freeze, 5 devs, 6 months",
+          "language": "Java",
+          "pain_points": "Slow deploys, tight coupling, Oracle costs",
           "target_architecture": "Spring Boot microservices, PostgreSQL, K8s",
           "team_capacity": "5 devs, 20% modernization time"
         },
         "expected_output": "Strangler fig plan with characterization tests, anti-corruption layers, dual-write",
-        "criteria": ["characterization tests", "extraction order", "anti-corruption", "feature flags", "data migration", "rollback plan"]
+        "criteria": [
+          "characterization tests",
+          "extraction order",
+          "anti-corruption",
+          "feature flags",
+          "data migration",
+          "rollback plan"
+        ]
       }
     ],
     "metrics": [
-      { "name": "quality", "weight": 1.0, "threshold": 0.8 },
-      { "name": "latency", "weight": 0.3, "threshold": 10000 },
-      { "name": "cost", "weight": 0.2, "threshold": 0.003 }
+      {
+        "name": "quality",
+        "weight": 1.0,
+        "threshold": 0.8
+      },
+      {
+        "name": "latency",
+        "weight": 0.3,
+        "threshold": 10000.0
+      },
+      {
+        "name": "cost",
+        "weight": 0.2,
+        "threshold": 0.003
+      }
     ],
     "judge_model": "qwen2.5-coder:1.5b",
     "threshold": 0.75
   },
   "signature": {
     "algorithm": "ed25519",
-    "public_key": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
-    "signature": "placeholder_signature_hex_64_bytes",
-    "signed_at": "2026-11-24T10:00:00Z"
+    "public_key": "26192987722e7b50b83063e767fe2e64d772d20bc1aaf89432229cfb87c35719",
+    "signature": "19b239fb6b2dde27e5e628c505e8177762401ffdeedafd24206959fab94f9d7a41a62759b26b5971ef4ef27a59658c30f423389bbe85def7a8dd20aa73558909",
+    "signed_at": "2026-11-28T01:19:12.359639Z"
   }
 }

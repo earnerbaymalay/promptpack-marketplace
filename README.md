@@ -13,12 +13,24 @@ Built with Tauri 2 (Rust core) and a Vite + TypeScript frontend. Evaluation runs
 | `src-tauri/src/registry.rs` | Fetch the registry `index.json`, download and submit packs |
 | `src-tauri/src/store.rs` | App config, eval history, installed packs |
 | `src/` | Frontend (Vite + TypeScript) |
-| `packs/` | 10 seed packs (code review, security analysis, threat modeling, Rust perf, ...); not yet signed |
+| `packs/` | 10 signed seed packs (code review, security analysis, threat modeling, Rust perf, ...) |
 | `public/index.json` | Registry index served from GitHub Pages |
 
 ## `.promptpack` format
 
-A JSON document with `metadata` (id, name, version, author, tags, license), the prompts, and a `signature` block (Ed25519 public key + signature over the content). `verify_pack` rejects a pack whose signature does not verify, or whose `metadata.id` is not the first 16 hex chars of the signing public key.
+A JSON document with `metadata` (id, name, version, author, tags, license), the prompts, eval cases, and a `signature` block: an Ed25519 signature over SHA-256 of the metadata, prompt and eval sections. `verify_pack` rejects a pack if the signature doesn't verify, if `metadata.author_pubkey` isn't the signing key, or if `metadata.id` isn't the first 16 hex chars of `sha256("<pubkey>:<name>")`.
+
+### Signing packs (creators)
+
+```bash
+cd src-tauri
+cargo run --bin sign-pack -- keygen                 # once; key saved to %APPDATA%\promptpack\creator.key
+cargo run --bin sign-pack -- sign ../packs/*.promptpack
+cargo run --bin sign-pack -- verify ../packs/*.promptpack
+cargo run --bin sign-pack -- index --out ../public/index.json     --base-url https://earnerbaymalay.github.io/promptpack-index/packs ../packs/*.promptpack
+```
+
+Then copy `packs/` and `public/index.json` into the `promptpack-index` repo, which GitHub Pages serves. Back up `creator.key`; never commit it.
 
 ## Build
 
@@ -33,7 +45,7 @@ Copy `.env.example` to `.env` to point at a different Ollama host, model, or reg
 
 ## Status
 
-Phase 1 of the master plan. Done: pack spec and verification, eval runner, registry index, seed pack content, UI scaffold. Still to do: sign the seed packs (they carry placeholder signatures), Stripe Checkout, signed delivery of paid packs, creator onboarding docs.
+Phase 1 of the master plan. Done: pack spec, signing tool and verification, eval runner, registry index, 10 signed seed packs, UI scaffold. Still to do: Stripe Checkout, signed delivery of paid packs, creator onboarding docs.
 
 ## License
 

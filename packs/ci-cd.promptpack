@@ -1,12 +1,20 @@
 {
   "metadata": {
-    "id": "8901234567890123",
+    "id": "04b2d58959bd0473",
     "name": "CI/CD Pipeline Generator",
     "version": "1.0.0",
     "author": "earnerbaymalay",
-    "author_pubkey": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "author_pubkey": "26192987722e7b50b83063e767fe2e64d772d20bc1aaf89432229cfb87c35719",
     "description": "Generate GitHub Actions, GitLab CI, Azure Pipelines, and CircleCI configs with best practices: caching, matrix builds, security scanning, deployments",
-    "tags": ["ci-cd", "github-actions", "gitlab", "azure-pipelines", "circleci", "devops", "pipeline"],
+    "tags": [
+      "ci-cd",
+      "github-actions",
+      "gitlab",
+      "azure-pipelines",
+      "circleci",
+      "devops",
+      "pipeline"
+    ],
     "created_at": "2026-11-22T10:00:00Z",
     "updated_at": "2026-11-24T10:00:00Z",
     "license": "MIT",
@@ -19,69 +27,98 @@
     "few_shot": [
       {
         "input": {
-          "platform": "GitHub Actions",
-          "project_type": "Rust CLI tool",
-          "language": "Rust",
           "build_tool": "cargo",
-          "test_framework": "built-in",
           "container": "Docker (scratch/distroless)",
           "deploy_target": "GitHub Releases + cargo install",
           "environments": "test, staging, production",
-          "security": "cargo-audit, cargo-deny, SBOM"
+          "language": "Rust",
+          "platform": "GitHub Actions",
+          "project_type": "Rust CLI tool",
+          "security": "cargo-audit, cargo-deny, SBOM",
+          "test_framework": "built-in"
         },
         "output": "name: CI/CD\n\non:\n  push:\n    branches: [main]\n  pull_request:\n    branches: [main]\n  release:\n    types: [published]\n\nenv:\n  CARGO_TERM_COLOR: always\n  RUSTFLAGS: '-C target-cpu=native'\n\njobs:\n  lint:\n    name: Lint & Format\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: dtolnay/rust-toolchain@stable\n        with:\n          components: rustfmt, clippy\n      - run: cargo fmt --all -- --check\n      - run: cargo clippy --workspace -- -D warnings\n\n  test:\n    name: Test\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: dtolnay/rust-toolchain@stable\n      - uses: Swatinem/rust-cache@v2\n      - run: cargo test --workspace --release\n\n  security:\n    name: Security Audit\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: dtolnay/rust-toolchain@stable\n      - run: cargo install cargo-audit cargo-deny\n      - run: cargo audit\n      - run: cargo deny check\n      - run: cargo install cargo-cyclonedx && cargo cyclonedx --format json > sbom.json\n      - uses: actions/upload-artifact@v4\n        with:\n          name: sbom\n          path: sbom.json\n\n  build:\n    name: Build (${{ matrix.os }})\n    needs: [lint, test, security]\n    strategy:\n      matrix:\n        include:\n          - os: ubuntu-latest\n            target: x86_64-unknown-linux-gnu\n          - os: windows-latest\n            target: x86_64-pc-windows-msvc\n          - os: macos-latest\n            target: x86_64-apple-darwin\n          - os: macos-latest\n            target: aarch64-apple-darwin\n    runs-on: ${{ matrix.os }}\n    steps:\n      - uses: actions/checkout@v4\n      - uses: dtolnay/rust-toolchain@stable\n        with:\n          target: ${{ matrix.target }}\n      - uses: Swatinem/rust-cache@v2\n      - run: cargo build --release --target ${{ matrix.target }}\n      - uses: actions/upload-artifact@v4\n        with:\n          name: binary-${{ matrix.target }}\n          path: target/${{ matrix.target }}/release/\n\n  release:\n    name: Create Release\n    needs: build\n    if: github.event_name == 'release' && github.event.action == 'published'\n    runs-on: ubuntu-latest\n    permissions:\n      contents: write\n    steps:\n      - uses: actions/download-artifact@v4\n        with:\n          path: artifacts\n      - name: Package binaries\n        run: |\n          mkdir -p release\n          for dir in artifacts/*/; do\n            name=$(basename \"$dir\")\n            cp -r \"$dir\"/* \"release/$name/\"\n          done\n      - uses: softprops/action-gh-release@v1\n        with:\n          files: release/**/*\n          draft: false\n          prerelease: false"
       }
     ],
     "variables": {
-      "platform": {
-        "type": "string",
-        "description": "CI/CD platform",
-        "required": true,
-        "enum_values": ["GitHub Actions", "GitLab CI", "Azure Pipelines", "CircleCI", "Jenkins", "Woodpecker"]
-      },
-      "project_type": {
-        "type": "string",
-        "description": "Project type",
-        "required": true
-      },
-      "language": {
-        "type": "string",
-        "description": "Programming language",
-        "required": true,
-        "enum_values": ["Rust", "TypeScript", "Python", "Go", "Java", "C#", "C++", "Zig"]
-      },
       "build_tool": {
         "type": "string",
         "description": "Build tool",
-        "required": true
-      },
-      "test_framework": {
-        "type": "string",
-        "description": "Test framework",
-        "required": true
+        "required": true,
+        "default": null,
+        "enum_values": null
       },
       "container": {
         "type": "string",
         "description": "Container strategy",
         "required": false,
-        "default": "Docker"
+        "default": "Docker",
+        "enum_values": null
       },
       "deploy_target": {
         "type": "string",
         "description": "Deployment target",
-        "required": true
+        "required": true,
+        "default": null,
+        "enum_values": null
       },
       "environments": {
         "type": "string",
         "description": "Environments",
         "required": false,
-        "default": "test, staging, production"
+        "default": "test, staging, production",
+        "enum_values": null
+      },
+      "language": {
+        "type": "string",
+        "description": "Programming language",
+        "required": true,
+        "default": null,
+        "enum_values": [
+          "Rust",
+          "TypeScript",
+          "Python",
+          "Go",
+          "Java",
+          "C#",
+          "C++",
+          "Zig"
+        ]
+      },
+      "platform": {
+        "type": "string",
+        "description": "CI/CD platform",
+        "required": true,
+        "default": null,
+        "enum_values": [
+          "GitHub Actions",
+          "GitLab CI",
+          "Azure Pipelines",
+          "CircleCI",
+          "Jenkins",
+          "Woodpecker"
+        ]
+      },
+      "project_type": {
+        "type": "string",
+        "description": "Project type",
+        "required": true,
+        "default": null,
+        "enum_values": null
       },
       "security": {
         "type": "string",
         "description": "Security requirements",
         "required": false,
-        "default": "SAST, SCA"
+        "default": "SAST, SCA",
+        "enum_values": null
+      },
+      "test_framework": {
+        "type": "string",
+        "description": "Test framework",
+        "required": true,
+        "default": null,
+        "enum_values": null
       }
     }
   },
@@ -90,32 +127,51 @@
       {
         "name": "rust-github-actions",
         "input": {
-          "platform": "GitHub Actions",
-          "project_type": "Rust CLI tool",
-          "language": "Rust",
           "build_tool": "cargo",
-          "test_framework": "built-in",
           "container": "Docker (distroless)",
           "deploy_target": "GitHub Releases",
           "environments": "test, staging, production",
-          "security": "cargo-audit, cargo-deny, SBOM"
+          "language": "Rust",
+          "platform": "GitHub Actions",
+          "project_type": "Rust CLI tool",
+          "security": "cargo-audit, cargo-deny, SBOM",
+          "test_framework": "built-in"
         },
         "expected_output": "Complete GitHub Actions workflow with matrix builds, security, release",
-        "criteria": ["valid YAML", "matrix builds", "caching", "security steps", "release automation", "proper permissions"]
+        "criteria": [
+          "valid YAML",
+          "matrix builds",
+          "caching",
+          "security steps",
+          "release automation",
+          "proper permissions"
+        ]
       }
     ],
     "metrics": [
-      { "name": "quality", "weight": 1.0, "threshold": 0.8 },
-      { "name": "latency", "weight": 0.3, "threshold": 8000 },
-      { "name": "cost", "weight": 0.2, "threshold": 0.002 }
+      {
+        "name": "quality",
+        "weight": 1.0,
+        "threshold": 0.8
+      },
+      {
+        "name": "latency",
+        "weight": 0.3,
+        "threshold": 8000.0
+      },
+      {
+        "name": "cost",
+        "weight": 0.2,
+        "threshold": 0.002
+      }
     ],
     "judge_model": "qwen2.5-coder:1.5b",
     "threshold": 0.75
   },
   "signature": {
     "algorithm": "ed25519",
-    "public_key": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
-    "signature": "placeholder_signature_hex_64_bytes",
-    "signed_at": "2026-11-24T10:00:00Z"
+    "public_key": "26192987722e7b50b83063e767fe2e64d772d20bc1aaf89432229cfb87c35719",
+    "signature": "12729c84857c568068b9bc31a6291f3ccc07fe7c1c01b52b6f51bc901bc5fa0e8105f944bf8707891c1632c93ceb71d2a7c5f430f5d6b8335c750c376634010f",
+    "signed_at": "2026-11-28T01:19:12.320463Z"
   }
 }

@@ -1,12 +1,19 @@
 {
   "metadata": {
-    "id": "f678901234567890",
+    "id": "a02c7f838d901b4f",
     "name": "Threat Modeling Assistant",
     "version": "1.0.0",
     "author": "earnerbaymalay",
-    "author_pubkey": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "author_pubkey": "26192987722e7b50b83063e767fe2e64d772d20bc1aaf89432229cfb87c35719",
     "description": "STRIDE, PASTA, and attack tree generation for system threat modeling with MITRE ATT&CK mapping",
-    "tags": ["threat-modeling", "stride", "pasta", "attack-tree", "mitre", "security"],
+    "tags": [
+      "threat-modeling",
+      "stride",
+      "pasta",
+      "attack-tree",
+      "mitre",
+      "security"
+    ],
     "created_at": "2026-11-20T10:00:00Z",
     "updated_at": "2026-11-24T10:00:00Z",
     "license": "MIT",
@@ -19,51 +26,63 @@
     "few_shot": [
       {
         "input": {
-          "system": "Microservices e-commerce platform",
+          "actors": "Customer, Admin, Payment Provider, Internal Services",
           "architecture": "Kubernetes (EKS), 12 services, PostgreSQL, Redis, Kafka, API Gateway",
           "data_flows": "Client -> API Gateway -> Services -> DB/Cache/Queue",
-          "trust_boundaries": "Internet, DMZ, VPC, Database subnet",
-          "actors": "Customer, Admin, Payment Provider, Internal Services",
-          "methodology": "STRIDE"
+          "methodology": "STRIDE",
+          "system": "Microservices e-commerce platform",
+          "trust_boundaries": "Internet, DMZ, VPC, Database subnet"
         },
         "output": "## System Context\n\nE-commerce platform on EKS with 12 microservices...\n\n## Data Flow Diagram\n\n### Processes\n- P1: API Gateway (EKS)\n- P2: Auth Service\n- P3: Order Service\n- P4: Payment Service\n- P5: Inventory Service\n- P6: Notification Service\n\n### Data Stores\n- DS1: PostgreSQL (RDS)\n- DS2: Redis (ElastiCache)\n- DS3: Kafka (MSK)\n\n### External Entities\n- EE1: Customer (Browser/Mobile)\n- EE2: Payment Provider (Stripe)\n- EE3: Admin Dashboard\n\n### Data Flows\n- DF1: EE1 -> P1 (HTTPS, JSON)\n- DF2: P1 -> P2 (gRPC, mTLS)\n- DF3: P2 -> DS1 (SQL, TLS)\n...\n\n## STRIDE Analysis\n\n### P1: API Gateway\n| Threat | STRIDE | Mitigation |\n|--------|--------|------------|\n| DDoS | Denial of Service | WAF, rate limiting, Shield |\n| Token replay | Spoofing | Short JWT expiry, nonce |\n| Route injection | Tampering | Input validation, schema |\n\n### DS1: PostgreSQL\n| Threat | STRIDE | Mitigation |\n|--------|--------|------------|\n| SQL injection | Tampering | Parameterized queries |\n| Data exfiltration | Information Disclosure | Encryption at rest, IAM |\n| Ransomware | Denial of Service | Backups, point-in-time recovery |\n\n## MITRE ATT&CK Mapping\n\n| Technique | Tactic | Mitigation |\n|-----------|--------|------------|\n| T1190 Exploit Public-Facing Application | Initial Access | WAF, patching |\n| T1505.003 Web Shell | Persistence | File integrity monitoring |\n| T1003.002 LSASS Memory | Credential Access | Credential Guard |\n\n## Risk Matrix\n\n| Threat | Likelihood | Impact | Risk | Priority |\n|--------|------------|--------|------|----------|\n| API Gateway DDoS | High | High | Critical | P0 |\n| SQL Injection | Medium | Critical | High | P1 |\n| Token Replay | Low | High | Medium | P2 |\n\n## Mitigations (Prioritized)\n\n1. **P0** - Deploy AWS Shield Advanced + WAF (Effort: 2 days)\n2. **P1** - Enforce parameterized queries via code review + SAST (Effort: 1 week)\n3. **P2** - Implement short-lived JWT + refresh token rotation (Effort: 3 days)\n..."
       }
     ],
     "variables": {
-      "system": {
+      "actors": {
         "type": "string",
-        "description": "System name",
-        "required": true
+        "description": "System actors",
+        "required": false,
+        "default": "",
+        "enum_values": null
       },
       "architecture": {
         "type": "string",
         "description": "Technical architecture",
-        "required": true
+        "required": true,
+        "default": null,
+        "enum_values": null
       },
       "data_flows": {
         "type": "string",
         "description": "Data flow description",
         "required": false,
-        "default": ""
-      },
-      "trust_boundaries": {
-        "type": "string",
-        "description": "Trust boundaries",
-        "required": false,
-        "default": ""
-      },
-      "actors": {
-        "type": "string",
-        "description": "System actors",
-        "required": false,
-        "default": ""
+        "default": "",
+        "enum_values": null
       },
       "methodology": {
         "type": "string",
         "description": "Threat modeling methodology",
         "required": false,
         "default": "STRIDE",
-        "enum_values": ["STRIDE", "PASTA", "Attack Trees", "Combined"]
+        "enum_values": [
+          "STRIDE",
+          "PASTA",
+          "Attack Trees",
+          "Combined"
+        ]
+      },
+      "system": {
+        "type": "string",
+        "description": "System name",
+        "required": true,
+        "default": null,
+        "enum_values": null
+      },
+      "trust_boundaries": {
+        "type": "string",
+        "description": "Trust boundaries",
+        "required": false,
+        "default": "",
+        "enum_values": null
       }
     }
   },
@@ -72,29 +91,47 @@
       {
         "name": "microservices-stride",
         "input": {
-          "system": "Payment processing service",
+          "actors": "Customer, Merchant, Auditor",
           "architecture": "3 services, PostgreSQL, message queue",
           "data_flows": "API -> Payment -> Ledger -> DB",
-          "trust_boundaries": "PCI DSS zone, corporate network",
-          "actors": "Customer, Merchant, Auditor",
-          "methodology": "STRIDE"
+          "methodology": "STRIDE",
+          "system": "Payment processing service",
+          "trust_boundaries": "PCI DSS zone, corporate network"
         },
         "expected_output": "Complete STRIDE table with MITRE mapping and mitigations",
-        "criteria": ["DFD complete", "STRIDE per element", "MITRE mapping", "risk matrix", "prioritized mitigations"]
+        "criteria": [
+          "DFD complete",
+          "STRIDE per element",
+          "MITRE mapping",
+          "risk matrix",
+          "prioritized mitigations"
+        ]
       }
     ],
     "metrics": [
-      { "name": "quality", "weight": 1.0, "threshold": 0.8 },
-      { "name": "latency", "weight": 0.3, "threshold": 10000 },
-      { "name": "cost", "weight": 0.2, "threshold": 0.003 }
+      {
+        "name": "quality",
+        "weight": 1.0,
+        "threshold": 0.8
+      },
+      {
+        "name": "latency",
+        "weight": 0.3,
+        "threshold": 10000.0
+      },
+      {
+        "name": "cost",
+        "weight": 0.2,
+        "threshold": 0.003
+      }
     ],
     "judge_model": "qwen2.5-coder:1.5b",
     "threshold": 0.75
   },
   "signature": {
     "algorithm": "ed25519",
-    "public_key": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
-    "signature": "placeholder_signature_hex_64_bytes",
-    "signed_at": "2026-11-24T10:00:00Z"
+    "public_key": "26192987722e7b50b83063e767fe2e64d772d20bc1aaf89432229cfb87c35719",
+    "signature": "2a4b079ea556a08dafb76fa758d78c25a3a199c913f3e89ace90437a79329e43b8003d68e32e1042145eafc338d4c006742dd7f099b3d3f2e951352ed194fe0a",
+    "signed_at": "2026-11-28T01:19:12.392826Z"
   }
 }

@@ -1,12 +1,18 @@
 {
   "metadata": {
-    "id": "b2c3d4e5f6789012",
+    "id": "e7c10f0837682282",
     "name": "Technical Writing Assistant",
     "version": "1.0.0",
     "author": "earnerbaymalay",
-    "author_pubkey": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
+    "author_pubkey": "26192987722e7b50b83063e767fe2e64d772d20bc1aaf89432229cfb87c35719",
     "description": "Prompts for writing clear technical documentation, API docs, tutorials, and developer guides",
-    "tags": ["writing", "documentation", "technical", "api-docs", "tutorials"],
+    "tags": [
+      "writing",
+      "documentation",
+      "technical",
+      "api-docs",
+      "tutorials"
+    ],
     "created_at": "2026-11-21T10:00:00Z",
     "updated_at": "2026-11-24T10:00:00Z",
     "license": "MIT",
@@ -19,60 +25,91 @@
     "few_shot": [
       {
         "input": {
-          "doc_type": "API reference",
-          "topic": "User authentication endpoint",
           "audience": "Backend developers",
           "context": "REST API with JWT tokens",
-          "key_points": ["Endpoint URL", "Headers", "Request body", "Response codes", "Error codes"],
+          "doc_type": "API reference",
           "format": "OpenAPI 3.1 + Markdown",
-          "length": "medium"
+          "key_points": "Endpoint URL, Headers, Request body, Response codes, Error codes",
+          "length": "medium",
+          "topic": "User authentication endpoint"
         },
         "output": "# POST /auth/login\n\nAuthenticate user and return JWT token.\n\n## Request\n\n`POST /api/v1/auth/login`\n\n### Headers\n- `Content-Type: application/json`\n\n### Body\n```json\n{\n  \"email\": \"string\",\n  \"password\": \"string\"\n}\n```\n\n## Responses\n- `200 OK` - Returns `{ \"token\": \"jwt\", \"expires_in\": 3600 }`\n- `401 Unauthorized` - Invalid credentials\n- `422 Unprocessable Entity` - Validation error"
       }
     ],
     "variables": {
-      "doc_type": {
-        "type": "string",
-        "description": "Type of documentation",
-        "required": true,
-        "enum_values": ["API reference", "Tutorial", "How-to guide", "Conceptual guide", "README", "Changelog", "Architecture decision record"]
-      },
-      "topic": {
-        "type": "string",
-        "description": "Subject of the documentation",
-        "required": true
-      },
       "audience": {
         "type": "string",
         "description": "Target audience",
         "required": true,
-        "enum_values": ["Backend developers", "Frontend developers", "DevOps engineers", "QA engineers", "Product managers", "New contributors"]
+        "default": null,
+        "enum_values": [
+          "Backend developers",
+          "Frontend developers",
+          "DevOps engineers",
+          "QA engineers",
+          "Product managers",
+          "New contributors"
+        ]
       },
       "context": {
         "type": "string",
         "description": "Background context",
         "required": false,
-        "default": ""
+        "default": "",
+        "enum_values": null
       },
-      "key_points": {
+      "doc_type": {
         "type": "string",
-        "description": "Key points to cover",
-        "required": false,
-        "default": ""
+        "description": "Type of documentation",
+        "required": true,
+        "default": null,
+        "enum_values": [
+          "API reference",
+          "Tutorial",
+          "How-to guide",
+          "Conceptual guide",
+          "README",
+          "Changelog",
+          "Architecture decision record"
+        ]
       },
       "format": {
         "type": "string",
         "description": "Output format",
         "required": false,
         "default": "Markdown",
-        "enum_values": ["Markdown", "OpenAPI 3.1 + Markdown", "Mermaid + Markdown", "reStructuredText", "AsciiDoc"]
+        "enum_values": [
+          "Markdown",
+          "OpenAPI 3.1 + Markdown",
+          "Mermaid + Markdown",
+          "reStructuredText",
+          "AsciiDoc"
+        ]
+      },
+      "key_points": {
+        "type": "string",
+        "description": "Key points to cover",
+        "required": false,
+        "default": "",
+        "enum_values": null
       },
       "length": {
         "type": "string",
         "description": "Document length",
         "required": false,
         "default": "medium",
-        "enum_values": ["short", "medium", "long"]
+        "enum_values": [
+          "short",
+          "medium",
+          "long"
+        ]
+      },
+      "topic": {
+        "type": "string",
+        "description": "Subject of the documentation",
+        "required": true,
+        "default": null,
+        "enum_values": null
       }
     }
   },
@@ -81,30 +118,47 @@
       {
         "name": "api-reference-auth",
         "input": {
-          "doc_type": "API reference",
-          "topic": "User login endpoint",
           "audience": "Backend developers",
           "context": "REST API with JWT",
-          "key_points": "Endpoint, headers, body, responses, errors",
+          "doc_type": "API reference",
           "format": "OpenAPI 3.1 + Markdown",
-          "length": "medium"
+          "key_points": "Endpoint, headers, body, responses, errors",
+          "length": "medium",
+          "topic": "User login endpoint"
         },
         "expected_output": "Complete OpenAPI spec with all required fields",
-        "criteria": ["valid OpenAPI", "all endpoints documented", "examples provided", "error codes listed"]
+        "criteria": [
+          "valid OpenAPI",
+          "all endpoints documented",
+          "examples provided",
+          "error codes listed"
+        ]
       }
     ],
     "metrics": [
-      { "name": "quality", "weight": 1.0, "threshold": 0.7 },
-      { "name": "latency", "weight": 0.3, "threshold": 5000 },
-      { "name": "cost", "weight": 0.2, "threshold": 0.001 }
+      {
+        "name": "quality",
+        "weight": 1.0,
+        "threshold": 0.7
+      },
+      {
+        "name": "latency",
+        "weight": 0.3,
+        "threshold": 5000.0
+      },
+      {
+        "name": "cost",
+        "weight": 0.2,
+        "threshold": 0.001
+      }
     ],
     "judge_model": "qwen2.5-coder:1.5b",
     "threshold": 0.7
   },
   "signature": {
     "algorithm": "ed25519",
-    "public_key": "d4a843b2c1e5f678901234567890abcdef1234567890abcdef1234567890abcd",
-    "signature": "placeholder_signature_hex_64_bytes",
-    "signed_at": "2026-11-24T10:00:00Z"
+    "public_key": "26192987722e7b50b83063e767fe2e64d772d20bc1aaf89432229cfb87c35719",
+    "signature": "273bfe9735a5d05c234d603351b0db27a9c2fbae4c25b137459c0d4ba957ba0fdf62e82e1dc98e1b6c454472a76752ea5a6cb14317042c549d2634a7a5433e0d",
+    "signed_at": "2026-11-28T01:19:12.384933200Z"
   }
 }
