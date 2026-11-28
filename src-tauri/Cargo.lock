@@ -3685,6 +3685,7 @@ dependencies = [
 [[package]]
 name = "ollama-client"
 version = "0.1.0"
+source = "git+https://github.com/earnerbaymalay/palexus-shared?branch=master#a39bd0b0569e35a67d66695924d556fdd5c7e43c"
 dependencies = [
  "reqwest 0.12.28",
  "serde",
@@ -3793,6 +3794,7 @@ checksum = "1a80800c0488c3a21695ea981a54918fbb37abf04f4d0720c453632255e2ff0e"
 [[package]]
 name = "palexus-brain-schema"
 version = "0.1.0"
+source = "git+https://github.com/earnerbaymalay/palexus-shared?branch=master#a39bd0b0569e35a67d66695924d556fdd5c7e43c"
 dependencies = [
  "chrono",
  "clap",
