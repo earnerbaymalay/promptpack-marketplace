@@ -23,6 +23,7 @@ tokio = { version = "1.38", features = ["full"] }
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 ed25519-dalek = "2.0"
 sha2 = "0.10"
+getrandom = "0.2"
 hex = "0.4"
 uuid = { version = "1.8", features = ["v4", "v7", "serde", "fast-rng"] }
 chrono = { version = "0.4", features = ["serde"] }
