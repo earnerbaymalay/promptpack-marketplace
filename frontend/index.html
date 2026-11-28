@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PromptPack Marketplace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --void: #0a0a0a;
+      --void-elevated: #111111;
+      --void-card: #141414;
+      --void-border: #1f1f1f;
+      --fg: #fafafa;
+      --fg-muted: #a3a3a3;
+      --fg-subtle: #525252;
+      --accent: #c6f135;
+      --accent-glow: rgba(198, 241, 53, 0.15);
+      --accent-strong: #e3ff8a;
+      --success: #22c55e;
+      --error: #dc2626;
+      --radius: 0;
+      --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+      --font-sans: "Geist", -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: "Geist Mono", "JetBrains Mono", monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--void);
+      color: var(--fg);
+      line-height: 1.6;
+      min-height: 100vh;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .skip-link {
+      position: absolute; top: -100%; left: 24px;
+      background: var(--accent); color: var(--void);
+      padding: 12px 24px; font-weight: 600; z-index: 1000;
+      text-decoration: none; border-radius: 0;
+    }
+    .skip-link:focus { top: 24px; }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10, 10, 10, 0.95);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--void-border);
+      padding: 16px 0;
+    }
+
+    .header-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .logo {
+      font-family: var(--font-sans);
+      font-weight: 800;
+      font-size: 22px;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--fg) 0%, var(--accent) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      text-decoration: none;
+    }
+
+    nav a { font-family: var(--font-mono); font-size: 12px; color: var(--fg-muted); text-decoration: none; margin-left: 24px; text-transform: uppercase; letter-spacing: 0.05em; }
+    nav a:hover { color: var(--accent); }
+
+    main { padding: 60px 0 80px; }
+
+    .section-title {
+      font-family: var(--font-sans);
+      font-weight: 700;
+      font-size: 28px;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .section-subtitle {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--fg-muted);
+      margin-bottom: 32px;
+    }
+
+    /* Drop Zone */
+    .drop-zone {
+      border: 2px dashed var(--void-border);
+      border-radius: 0;
+      padding: 60px;
+      text-align: center;
+      transition: all var(--transition);
+      cursor: pointer;
+      background: var(--void-card);
+    }
+    .drop-zone:hover, .drop-zone.active {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+    }
+    .drop-zone.dropping { border-color: var(--success); background: rgba(34, 197, 94, 0.1); }
+    .drop-icon { font-size: 48px; margin-bottom: 16px; }
+    .drop-text { font-family: var(--font-mono); font-size: 14px; color: var(--fg-muted); margin-bottom: 8px; }
+    .drop-hint { font-size: 12px; color: var(--fg-subtle); }
+
+    /* Pack Grid */
+    .pack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; margin-top: 32px; }
+    .pack-card {
+      background: var(--void-card);
+      border: 1px solid var(--void-border);
+      padding: 24px;
+      transition: all var(--transition);
+      display: flex;
+      flex-direction: column;
+    }
+    .pack-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .pack-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .pack-name { font-family: var(--font-sans); font-weight: 600; font-size: 16px; }
+    .pack-badge { font-family: var(--font-mono); font-size: 10px; padding: 4px 8px; border-radius: 0; background: var(--accent); color: var(--void); font-weight: 700; }
+    .pack-desc { color: var(--fg-muted); font-size: 13px; margin-bottom: 16px; flex: 1; }
+    .pack-meta { font-family: var(--font-mono); font-size: 11px; color: var(--fg-subtle); display: flex; gap: 16px; margin-bottom: 16px; }
+    .pack-meta span { display: flex; align-items: center; gap: 4px; }
+    .pack-actions { display: flex; gap: 8px; margin-top: auto; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 10px 20px; font-family: var(--font-mono); font-size: 12px; font-weight: 500;
+      border: 1px solid var(--void-border); background: var(--void-card); color: var(--fg);
+      cursor: pointer; transition: all var(--transition); text-decoration: none;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+    .btn.primary { border-color: var(--accent); color: var(--void); background: var(--accent); }
+    .btn.primary:hover { background: var(--accent-strong); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn.small { padding: 8px 16px; font-size: 11px; }
+
+    /* Eval Results */
+    .eval-section { margin-top: 60px; }
+    .eval-card {
+      background: var(--void-card);
+      border: 1px solid var(--void-border);
+      padding: 24px;
+    }
+    .eval-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .eval-list { display: flex; flex-direction: column; gap: 16px; }
+    .eval-item {
+      background: var(--void-elevated);
+      border: 1px solid var(--void-border);
+      padding: 20px;
+    }
+    .eval-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .eval-pack-name { font-family: var(--font-sans); font-weight: 600; font-size: 14px; }
+    .eval-status { font-family: var(--font-mono); font-size: 11px; padding: 4px 8px; border-radius: 0; }
+    .eval-status.pending { background: var(--accent-glow); color: var(--accent); }
+    .eval-status.running { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+    .eval-status.completed { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+    .eval-status.failed { background: rgba(220, 38, 38, 0.15); color: var(--error); }
+    .eval-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .metric { font-family: var(--font-mono); font-size: 11px; color: var(--fg-muted); }
+    .metric-value { display: block; font-size: 16px; color: var(--fg); font-weight: 600; margin-top: 4px; }
+
+    /* Settings / Config */
+    .settings-section { margin-top: 60px; }
+    .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+    .settings-card {
+      background: var(--void-card);
+      border: 1px solid var(--void-border);
+      padding: 24px;
+    }
+    .settings-card h3 { font-family: var(--font-sans); font-weight: 600; font-size: 14px; margin-bottom: 16px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--fg-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .form-input {
+      width: 100%; background: var(--void); border: 1px solid var(--void-border);
+      color: var(--fg); padding: 12px 16px; font-family: var(--font-mono); font-size: 13px;
+    }
+    .form-input:focus { outline: none; border-color: var(--accent); }
+
+    footer { padding: 40px 0; text-align: center; color: var(--fg-subtle); font-family: var(--font-mono); font-size: 12px; border-top: 1px solid var(--void-border); }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    .hidden { display: none !important; }
+    .toast { position: fixed; bottom: 24px; right: 24px; padding: 16px 24px; background: var(--void-card); border: 1px solid var(--void-border); font-family: var(--font-mono); font-size: 12px; z-index: 1000; animation: slideIn 300ms ease; }
+    .toast.success { border-color: var(--success); }
+    .toast.error { border-color: var(--error); }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  </style>
+</head>
+<body>
+  <a href="#main" class="skip-link">Skip to main content</a>
+
+  <header role="banner">
+    <div class="container header-inner">
+      <a href="#" class="logo" aria-label="PromptPack Marketplace — Home">PromptPack Marketplace</a>
+      <nav aria-label="Main navigation">
+        <a href="#browse">Browse Packs</a>
+        <a href="#eval">Evaluations</a>
+        <a href="#settings">Settings</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" role="main">
+    <div class="container">
+      <!-- Upload / Create Pack -->
+      <section aria-labelledby="upload-title">
+        <h2 id="upload-title" class="section-title">Install PromptPack</h2>
+        <p class="section-subtitle">Drag & drop a <code>.promptpack</code> file, or create a new pack from a directory</p>
+
+        <div class="drop-zone" id="drop-zone" tabindex="0" role="button" aria-label="Drop zone for .promptpack file">
+          <div class="drop-icon">📦</div>
+          <p class="drop-text">Drop <code>.promptpack</code> file here</p>
+          <p class="drop-hint">or click to browse</p>
+          <input type="file" id="file-input" accept=".promptpack" class="hidden" aria-label="Select promptpack file">
+        </div>
+
+        <div style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
+          <button class="btn primary" id="create-pack-btn">Create New Pack</button>
+          <button class="btn" id="verify-pack-btn">Verify Pack</button>
+        </div>
+      </section>
+
+      <!-- Installed Packs -->
+      <section id="browse" aria-labelledby="browse-title" style="margin-top: 60px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+          <h2 class="section-title">Installed Packs</h2>
+          <button class="btn" id="refresh-packs-btn">Refresh</button>
+        </div>
+        <div class="pack-grid" id="pack-grid">
+          <div style="grid-column: 1 / -1; text-align: center; color: var(--fg-muted); padding: 60px;">Loading packs...</div>
+        </div>
+      </section>
+
+      <!-- Evaluations -->
+      <section id="eval" class="eval-section" aria-labelledby="eval-title">
+        <h2 id="eval-title" class="section-title">Evaluations</h2>
+        <p class="section-subtitle">Run local eval on installed packs using Ollama</p>
+
+        <div style="margin-bottom: 24px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+          <select id="eval-model" class="form-input" style="width: auto; min-width: 200px;">
+            <option value="qwen2.5-coder:1.5b">qwen2.5-coder:1.5b</option>
+            <option value="qwen2.5:3b">qwen2.5:3b</option>
+            <option value="llama3.2-3b">llama3.2-3b</option>
+            <option value="dolphin-phi">dolphin-phi</option>
+          </select>
+          <select id="eval-judge" class="form-input" style="width: auto; min-width: 200px;">
+            <option value="qwen2.5-coder:1.5b">qwen2.5-coder:1.5b (default judge)</option>
+            <option value="qwen2.5:3b">qwen2.5:3b</option>
+          </select>
+          <button class="btn primary" id="run-eval-btn">Run Evaluation</button>
+        </div>
+
+        <div class="eval-card">
+          <div class="eval-header">
+            <h3 class="section-title" style="font-size: 18px;">Evaluation History</h3>
+          </div>
+          <div class="eval-list" id="eval-list">
+            <div style="text-align: center; color: var(--fg-muted); padding: 40px;">No evaluations yet</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings -->
+      <section id="settings" class="settings-section" aria-labelledby="settings-title">
+        <h2 id="settings-title" class="section-title">Settings</h2>
+        <p class="section-subtitle">Configure Ollama endpoint and marketplace settings</p>
+
+        <div class="settings-grid">
+          <div class="settings-card">
+            <h3>Ollama Configuration</h3>
+            <div class="form-group">
+              <label class="form-label" for="ollama-url">Ollama Base URL</label>
+              <input type="text" id="ollama-url" class="form-input" placeholder="http://localhost:11434" value="http://localhost:11434">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ollama-timeout">Timeout (seconds)</label>
+              <input type="number" id="ollama-timeout" class="form-input" placeholder="120" value="120">
+            </div>
+            <button class="btn primary" id="save-config-btn">Save Configuration</button>
+          </div>
+
+          <div class="settings-card">
+            <h3>Marketplace</h3>
+            <div class="form-group">
+              <label class="form-label" for="registry-url">Registry Index URL</label>
+              <input type="text" id="registry-url" class="form-input" placeholder="https://earnerbaymalay.github.io/promptpack-index/index.json" value="https://earnerbaymalay.github.io/promptpack-index/index.json">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="packs-dir">Packs Directory</label>
+              <input type="text" id="packs-dir" class="form-input" placeholder="./packs" value="./packs">
+            </div>
+            <button class="btn primary" id="fetch-index-btn">Fetch Registry Index</button>
+          </div>
+
+          <div class="settings-card">
+            <h3>Stripe (Placeholder)</h3>
+            <p style="color: var(--fg-muted); font-size: 13px; margin-bottom: 16px;">Stripe integration for paid packs - not yet implemented</p>
+            <div class="form-group">
+              <label class="form-label" for="stripe-key">Publishable Key</label>
+              <input type="text" id="stripe-key" class="form-input" placeholder="pk_test_..." disabled>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="stripe-secret">Secret Key (server-side only)</label>
+              <input type="password" id="stripe-secret" class="form-input" placeholder="sk_test_..." disabled>
+            </div>
+            <button class="btn" disabled>Configure Stripe</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer role="contentinfo">
+    <div class="container">
+      <p>PromptPack Marketplace — Part of the <a href="https://github.com/earnerbaymalay/promptpack-marketplace">PromptPack</a> project</p>
+      <p style="margin-top: 8px; font-size: 11px;">
+        Built with <span style="color: var(--accent);">Nocta</span> aesthetic · Fonts: Geist / Geist Mono · 
+        Accent: <code style="color: var(--accent);">#c6f135</code> · Dark-only, always
+      </p>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { invoke } from '@tauri-apps/api/core';
+    import { listen } from '@tauri-apps/api/event';
+
+    // State
+    let packs = [];
+    let evaluations = [];
+
+    // Toast notifications
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => { toast.remove(); }, 4000);
+    }
+
+    // Drop zone handling
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
+      dropZone.addEventListener(event, e => { e.preventDefault(); e.stopPropagation(); });
+    });
+    ['dragenter', 'dragover'].forEach(event => {
+      dropZone.addEventListener(event, () => dropZone.classList.add('active'));
+    });
+    ['dragleave', 'drop'].forEach(event => {
+      dropZone.addEventListener(event, () => dropZone.classList.remove('active'));
+    });
+    dropZone.addEventListener('drop', e => {
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.endsWith('.promptpack')) {
+        handlePackFile(file);
+      } else {
+        showToast('Please drop a .promptpack file', 'error');
+      }
+    });
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) handlePackFile(file);
+    });
+
+    async function handlePackFile(file) {
+      showToast(`Installing ${file.name}...`);
+      try {
+        // Read file as base64
+        const base64 = await fileToBase64(file);
+        await invoke('install_pack', { packData: base64, fileName: file.name });
+        showToast(`Installed ${file.name}`, 'success');
+        await loadPacks();
+      } catch (e) {
+        showToast(`Failed to install: ${e}`, 'error');
+      }
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Load installed packs
+    async function loadPacks() {
+      try {
+        packs = await invoke('get_installed_packs');
+        renderPacks();
+      } catch (e) {
+        console.error('Failed to load packs:', e);
+        document.getElementById('pack-grid').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--fg-muted); padding: 60px;">Failed to load packs</div>';
+      }
+    }
+
+    function renderPacks() {
+      const grid = document.getElementById('pack-grid');
+      if (!packs.length) {
+        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--fg-muted); padding: 60px;">No packs installed. Drop a .promptpack file to get started.</div>';
+        return;
+      }
+      grid.innerHTML = packs.map(pack => `
+        <div class="pack-card" data-id="${pack.id}">
+          <div class="pack-header">
+            <span class="pack-name">${escapeHtml(pack.name)}</span>
+            <span class="pack-badge">v${pack.version}</span>
+          </div>
+          <p class="pack-desc">${escapeHtml(pack.description || 'No description')}</p>
+          <div class="pack-meta">
+            <span>📦 ${pack.cases?.length || 0} cases</span>
+            <span>👤 ${escapeHtml(pack.author || 'Unknown')}</span>
+          </div>
+          <div class="pack-actions">
+            <button class="btn small" onclick="runPackEval('${pack.id}')">Run Eval</button>
+            <button class="btn small" onclick="uninstallPack('${pack.id}')">Uninstall</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Pack actions
+    window.runPackEval = async function(packId) {
+      const model = document.getElementById('eval-model').value;
+      const judge = document.getElementById('eval-judge').value;
+      showToast(`Starting evaluation for pack ${packId}...`);
+      try {
+        const result = await invoke('run_eval', { packId, model, judgeModel: judge });
+        showToast('Evaluation started', 'success');
+        await loadEvaluations();
+      } catch (e) {
+        showToast(`Failed to start evaluation: ${e}`, 'error');
+      }
+    };
+
+    window.uninstallPack = async function(packId) {
+      if (!confirm('Uninstall this pack?')) return;
+      try {
+        await invoke('uninstall_pack', { packId });
+        showToast('Pack uninstalled', 'success');
+        await loadPacks();
+      } catch (e) {
+        showToast(`Failed to uninstall: ${e}`, 'error');
+      }
+    };
+
+    // Evaluations
+    async function loadEvaluations() {
+      try {
+        evaluations = await invoke('get_eval_results');
+        renderEvaluations();
+      } catch (e) {
+        console.error('Failed to load evaluations:', e);
+      }
+    }
+
+    function renderEvaluations() {
+      const list = document.getElementById('eval-list');
+      if (!evaluations.length) {
+        list.innerHTML = '<div style="text-align: center; color: var(--fg-muted); padding: 40px;">No evaluations yet</div>';
+        return;
+      }
+      list.innerHTML = evaluations.map(eval => `
+        <div class="eval-item">
+          <div class="eval-item-header">
+            <span class="eval-pack-name">${escapeHtml(eval.pack_name)}</span>
+            <span class="eval-status ${eval.status}">${eval.status}</span>
+          </div>
+          <div class="eval-metrics">
+            <div class="metric">TTFT<span class="metric-value">${eval.ttft_ms ?? '—'} ms</span></div>
+            <div class="metric">TPOT<span class="metric-value">${eval.tpot_ms ?? '—'} ms</span></div>
+            <div class="metric">Tokens/s<span class="metric-value">${eval.tokens_per_sec ?? '—'}</span></div>
+            <div class="metric">Quality<span class="metric-value">${eval.quality_score ?? '—'}/10</span></div>
+          </div>
+          ${eval.error ? `<div style="margin-top: 12px; color: var(--error); font-family: var(--font-mono); font-size: 11px;">Error: ${escapeHtml(eval.error)}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    // Run evaluation button
+    document.getElementById('run-eval-btn').addEventListener('click', async () => {
+      if (!packs.length) { showToast('No packs installed', 'error'); return; }
+      const packId = packs[0].id; // For now, evaluate first pack
+      const model = document.getElementById('eval-model').value;
+      const judge = document.getElementById('eval-judge').value;
+      showToast(`Starting evaluation...`);
+      try {
+        await invoke('run_eval', { packId, model, judgeModel: judge });
+        showToast('Evaluation started', 'success');
+        await loadEvaluations();
+      } catch (e) {
+        showToast(`Failed: ${e}`, 'error');
+      }
+    });
+
+    // Refresh packs
+    document.getElementById('refresh-packs-btn').addEventListener('click', loadPacks);
+
+    // Config
+    document.getElementById('save-config-btn').addEventListener('click', async () => {
+      const url = document.getElementById('ollama-url').value;
+      const timeout = parseInt(document.getElementById('ollama-timeout').value);
+      try {
+        await invoke('set_config', { key: 'ollama_url', value: url });
+        await invoke('set_config', { key: 'ollama_timeout', value: timeout.toString() });
+        showToast('Configuration saved', 'success');
+      } catch (e) {
+        showToast(`Failed to save: ${e}`, 'error');
+      }
+    });
+
+    document.getElementById('fetch-index-btn').addEventListener('click', async () => {
+      const url = document.getElementById('registry-url').value;
+      try {
+        await invoke('fetch_index', { url });
+        showToast('Registry index fetched', 'success');
+      } catch (e) {
+        showToast(`Failed to fetch: ${e}`, 'error');
+      }
+    });
+
+    // Create pack button (placeholder)
+    document.getElementById('create-pack-btn').addEventListener('click', () => {
+      showToast('Create pack: use CLI `create_pack` command', 'info');
+    });
+
+    document.getElementById('verify-pack-btn').addEventListener('click', () => {
+      showToast('Verify pack: use CLI `verify_pack` command', 'info');
+    });
+
+    // Initialize
+    async function init() {
+      try {
+        // Load config
+        const config = await invoke('get_config');
+        if (config.ollama_url) document.getElementById('ollama-url').value = config.ollama_url;
+        if (config.ollama_timeout) document.getElementById('ollama-timeout').value = config.ollama_timeout;
+      } catch (e) { console.warn('Could not load config:', e); }
+
+      await loadPacks();
+      await loadEvaluations();
+    }
+
+    init();
+  </script>
+</body>
+</html>

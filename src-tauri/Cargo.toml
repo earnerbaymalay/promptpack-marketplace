@@ -29,6 +29,7 @@ ollama-client = { git = "https://github.com/earnerbaymalay/palexus-shared", bran
 palexus-brain-schema = { git = "https://github.com/earnerbaymalay/palexus-shared", branch = "master" }
 hex = "0.4"
 uuid = { version = "1.8", features = ["v4", "v7", "serde", "fast-rng"] }
+base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1.0"
 thiserror = "1.0"
